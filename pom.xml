@@ -28,6 +28,8 @@
         <cucumber.version>7.14.0</cucumber.version>
         <rest-assured.version>5.3.2</rest-assured.version>
         <testcontainers.version>1.19.1</testcontainers.version>
+        <springdoc.version>2.3.0</springdoc.version>
+        <resilience4j.version>2.1.0</resilience4j.version>
     </properties>
     
     <dependencies>
@@ -53,6 +55,25 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        
+        <!-- Resilience4j Circuit Breaker -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-spring-boot3</artifactId>
+            <version>${resilience4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-feign</artifactId>
+            <version>${resilience4j.version}</version>
+        </dependency>
+        
+        <!-- OpenAPI/Swagger Documentation -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
         
         <!-- Database -->

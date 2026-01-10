@@ -18,9 +18,6 @@ public class FeignConfig {
     @Value("${parking.simulator.retry.max-interval-millis:32000}")
     private long maxIntervalMillis;
     
-    @Value("${parking.simulator.retry.multiplier:2.0}")
-    private double multiplier;
-    
     @Bean
     public Retryer retryer() {
         return new Retryer.Default(
