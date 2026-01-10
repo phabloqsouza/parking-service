@@ -314,19 +314,106 @@ The system is designed for future multi-garage support:
 
 ## Testing
 
-### Component Tests (BDD)
+### Unit Tests
 
-Cucumber feature files are located in `test/resources/component/features/`:
+Run unit tests (default profile):
+```bash
+mvn test
+```
 
+Or explicitly:
+```bash
+mvn test -Punit-tests
+```
+
+### Component Tests (BDD with Cucumber)
+
+Component tests use Cucumber BDD framework with RestAssured to test the full application stack. They require the application and its dependencies (MySQL, simulator) to be running.
+
+**Prerequisites:**
+- Start all services using Docker Compose:
+  ```bash
+  docker-compose -f docker-compose-component-tests.yml up -d
+  ```
+  
+  Or start services manually:
+  - MySQL on port 3307 with database `parking_db_test`, user `parking_user_test`, password `parking_password_test`
+  - Simulator on port 8080
+  - Parking service on port 3004
+
+**Run component tests:**
+
+Using Docker Compose (recommended):
+```bash
+docker-compose -f docker-compose-component-tests.yml up component-tests
+```
+
+Using Maven directly:
+```bash
+# Set environment variables (required)
+export SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3307/parking_db_test?useSSL=false&allowPublicKeyRetrieval=true
+export SPRING_DATASOURCE_USERNAME=parking_user_test
+export SPRING_DATASOURCE_PASSWORD=parking_password_test
+export PARKING_SIMULATOR_URL=http://localhost:8080
+export PARKING_SERVICE_URL=http://localhost:3004
+
+# Run component tests with the profile
+mvn verify -Pcomponent-tests \
+  -Dspring.datasource.url=$SPRING_DATASOURCE_URL \
+  -Dspring.datasource.username=$SPRING_DATASOURCE_USERNAME \
+  -Dspring.datasource.password=$SPRING_DATASOURCE_PASSWORD \
+  -Dparking.simulator.url=$PARKING_SIMULATOR_URL \
+  -Dparking.service.url=$PARKING_SERVICE_URL
+```
+
+On Windows (PowerShell):
+```powershell
+$env:SPRING_DATASOURCE_URL="jdbc:mysql://localhost:3307/parking_db_test?useSSL=false&allowPublicKeyRetrieval=true"
+$env:SPRING_DATASOURCE_USERNAME="parking_user_test"
+$env:SPRING_DATASOURCE_PASSWORD="parking_password_test"
+$env:PARKING_SIMULATOR_URL="http://localhost:8080"
+$env:PARKING_SERVICE_URL="http://localhost:3004"
+
+mvn verify -Pcomponent-tests `
+  -Dspring.datasource.url=$env:SPRING_DATASOURCE_URL `
+  -Dspring.datasource.username=$env:SPRING_DATASOURCE_USERNAME `
+  -Dspring.datasource.password=$env:SPRING_DATASOURCE_PASSWORD `
+  -Dparking.simulator.url=$env:PARKING_SIMULATOR_URL `
+  -Dparking.service.url=$env:PARKING_SERVICE_URL
+```
+
+On Windows (CMD):
+```cmd
+set SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3307/parking_db_test?useSSL=false&allowPublicKeyRetrieval=true
+set SPRING_DATASOURCE_USERNAME=parking_user_test
+set SPRING_DATASOURCE_PASSWORD=parking_password_test
+set PARKING_SIMULATOR_URL=http://localhost:8080
+set PARKING_SERVICE_URL=http://localhost:3004
+
+mvn verify -Pcomponent-tests ^
+  -Dspring.datasource.url=%SPRING_DATASOURCE_URL% ^
+  -Dspring.datasource.username=%SPRING_DATASOURCE_USERNAME% ^
+  -Dspring.datasource.password=%SPRING_DATASOURCE_PASSWORD% ^
+  -Dparking.simulator.url=%PARKING_SIMULATOR_URL% ^
+  -Dparking.service.url=%PARKING_SERVICE_URL%
+```
+
+**Cucumber feature files** are located in `src/test/resources/component/features/`:
 - `parking-events.feature` - Entry, parked, exit flow scenarios
 - `revenue.feature` - Revenue query scenarios
 - `capacity-management.feature` - Capacity and closure rules
 - `pricing.feature` - Dynamic pricing and fee calculation
 - `spot-matching.feature` - Coordinate matching scenarios
 
-**Run component tests:**
+### Run All Tests (Unit + Component)
+
 ```bash
-mvn test
+mvn verify -Pall-tests \
+  -Dspring.datasource.url=jdbc:mysql://localhost:3307/parking_db_test?useSSL=false&allowPublicKeyRetrieval=true \
+  -Dspring.datasource.username=parking_user_test \
+  -Dspring.datasource.password=parking_password_test \
+  -Dparking.simulator.url=http://localhost:8080 \
+  -Dparking.service.url=http://localhost:3004
 ```
 
 ### Unit Tests

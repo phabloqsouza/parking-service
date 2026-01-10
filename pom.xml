@@ -308,17 +308,6 @@
                                 <exclude>**/*Test.java</exclude>
                                 <exclude>**/*Tests.java</exclude>
                             </excludes>
-                            <argLine>
-                                -Dspring.profiles.active=test
-                                -Dspring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/parking_db_test?useSSL=false&allowPublicKeyRetrieval=true}
-                                -Dspring.datasource.username=${SPRING_DATASOURCE_USERNAME:parking_user_test}
-                                -Dspring.datasource.password=${SPRING_DATASOURCE_PASSWORD:parking_password_test}
-                                -Dparking.simulator.url=${PARKING_SIMULATOR_URL:http://localhost:8080}
-                                -Dparking.service.url=${PARKING_SERVICE_URL:http://localhost:3003}
-                            </argLine>
-                            <systemPropertyVariables>
-                                <spring.profiles.active>test</spring.profiles.active>
-                            </systemPropertyVariables>
                         </configuration>
                         <executions>
                             <execution>
@@ -373,14 +362,6 @@
                                 <exclude>**/*Test.java</exclude>
                                 <exclude>**/*Tests.java</exclude>
                             </excludes>
-                            <argLine>
-                                -Dspring.profiles.active=test
-                                -Dspring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/parking_db_test?useSSL=false&allowPublicKeyRetrieval=true}
-                                -Dspring.datasource.username=${SPRING_DATASOURCE_USERNAME:parking_user_test}
-                                -Dspring.datasource.password=${SPRING_DATASOURCE_PASSWORD:parking_password_test}
-                                -Dparking.simulator.url=${PARKING_SIMULATOR_URL:http://localhost:8080}
-                                -Dparking.service.url=${PARKING_SERVICE_URL:http://localhost:3003}
-                            </argLine>
                         </configuration>
                         <executions>
                             <execution>
