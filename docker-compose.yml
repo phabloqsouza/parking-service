@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: parking-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: parking_db
+      MYSQL_USER: parking_user
+      MYSQL_PASSWORD: parking_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "parking_user", "-pparking_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - parking-network
+
+  simulator:
+    image: cfontes0estapar/garage-sim:1.0.0
+    container_name: parking-simulator
+    network_mode: "host"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/garage"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  parking-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: parking-service
+    ports:
+      - "3003:3003"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/parking_db?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: parking_user
+      SPRING_DATASOURCE_PASSWORD: parking_password
+      PARKING_SIMULATOR_URL: http://host.docker.internal:8080
+      PARKING_INITIALIZATION_ENABLED: "false"  # Disable ApplicationRunner in Docker (use docker-entrypoint.sh)
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - parking-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  parking-network:
+    driver: bridge
+
+volumes:
+  mysql_data:

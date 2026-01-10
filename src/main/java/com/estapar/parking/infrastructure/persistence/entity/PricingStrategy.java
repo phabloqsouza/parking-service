@@ -1,0 +1,52 @@
+package com.estapar.parking.infrastructure.persistence.entity;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = "pricing_strategy",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"occupancy_min_percentage", "occupancy_max_percentage"}),
+       indexes = @Index(name = "idx_active_occupancy", columnList = "is_active,occupancy_min_percentage,occupancy_max_percentage"))
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class PricingStrategy {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+    
+    @Column(nullable = false, precision = 5, scale = 2)
+    private BigDecimal occupancyMinPercentage;
+    
+    @Column(nullable = false, precision = 5, scale = 2)
+    private BigDecimal occupancyMaxPercentage;
+    
+    @Column(nullable = false, precision = 5, scale = 2)
+    private BigDecimal multiplier;
+    
+    @Column
+    private String description;
+    
+    @Column(nullable = false)
+    private Boolean isActive = true;
+    
+    @Column(nullable = false)
+    private Instant createdAt;
+    
+    @Column
+    private Instant updatedAt;
+    
+    public boolean matchesOccupancy(BigDecimal occupancyPercentage) {
+        return occupancyPercentage.compareTo(occupancyMinPercentage) >= 0 
+               && occupancyPercentage.compareTo(occupancyMaxPercentage) < 0;
+    }
+}

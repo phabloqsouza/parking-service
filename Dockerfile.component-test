@@ -1,0 +1,21 @@
+# Dockerfile for running component tests
+FROM maven:3.9-eclipse-temurin-21
+
+WORKDIR /app
+
+# Copy pom.xml and download dependencies (layer caching)
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+# Copy source code and test resources
+COPY src ./src
+COPY test ./test
+
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Create reports directory
+RUN mkdir -p target/cucumber-reports
+
+# Default command - runs Cucumber component tests
+CMD ["mvn", "test", "-Dtest=CucumberComponentTestRunner", "-Dspring.profiles.active=test"]

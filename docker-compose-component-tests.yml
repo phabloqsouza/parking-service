@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: parking-mysql-test
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: parking_db_test
+      MYSQL_USER: parking_user_test
+      MYSQL_PASSWORD: parking_password_test
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "parking_user_test", "-pparking_password_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - parking-test-network
+
+  simulator:
+    image: cfontes0estapar/garage-sim:1.0.0
+    container_name: parking-simulator-test
+    network_mode: "host"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/garage"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  parking-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: parking-service-test
+    ports:
+      - "3004:3003"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/parking_db_test?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: parking_user_test
+      SPRING_DATASOURCE_PASSWORD: parking_password_test
+      PARKING_SIMULATOR_URL: http://host.docker.internal:8080
+      PARKING_INITIALIZATION_ENABLED: "true"  # Enable for component tests
+      SPRING_PROFILES_ACTIVE: test
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - parking-test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    entrypoint: ["/usr/local/bin/docker-entrypoint.sh"]
+
+  component-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.component-test
+    container_name: parking-component-tests
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/parking_db_test?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: parking_user_test
+      SPRING_DATASOURCE_PASSWORD: parking_password_test
+      PARKING_SERVICE_URL: http://parking-service:3003
+      PARKING_SIMULATOR_URL: http://host.docker.internal:8080
+      SPRING_PROFILES_ACTIVE: test
+      PARKING_INITIALIZATION_ENABLED: "true"
+    depends_on:
+      parking-service:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - parking-test-network
+    volumes:
+      - ./target/cucumber-reports:/app/target/cucumber-reports
+    command: ["mvn", "test", "-Dtest=CucumberComponentTestRunner", "-Dspring.profiles.active=test"]
+
+networks:
+  parking-test-network:
+    driver: bridge
+
+volumes:
+  mysql_test_data:
