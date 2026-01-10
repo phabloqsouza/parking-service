@@ -48,9 +48,9 @@ public class ParkingEventSteps extends ComponentTestConfig {
     @When("I send ENTRY event for vehicle {string} at {string}")
     public void iSendENTRYEventForVehicleAt(String licensePlate, String entryTime) {
         Map<String, Object> event = new HashMap<>();
-        event.put("event", "ENTRY");
-        event.put("licensePlate", licensePlate);
-        event.put("entryTime", entryTime);
+        event.put("event_type", "ENTRY");
+        event.put("license_plate", licensePlate);
+        event.put("entry_time", entryTime);
         event.put("sector", "A"); // Default sector
 
         RequestSpecification request = given()
@@ -65,8 +65,8 @@ public class ParkingEventSteps extends ComponentTestConfig {
     @When("I send PARKED event for vehicle {string} with lat {double} and lng {double}")
     public void iSendPARKEDEventForVehicleWithLatAndLng(String licensePlate, Double lat, Double lng) {
         Map<String, Object> event = new HashMap<>();
-        event.put("event", "PARKED");
-        event.put("licensePlate", licensePlate);
+        event.put("event_type", "PARKED");
+        event.put("license_plate", licensePlate);
         event.put("lat", lat);
         event.put("lng", lng);
 
@@ -107,9 +107,9 @@ public class ParkingEventSteps extends ComponentTestConfig {
     @When("I send EXIT event for vehicle {string} at {string}")
     public void iSendEXITEventForVehicleAt(String licensePlate, String exitTime) {
         Map<String, Object> event = new HashMap<>();
-        event.put("event", "EXIT");
-        event.put("licensePlate", licensePlate);
-        event.put("exitTime", exitTime);
+        event.put("event_type", "EXIT");
+        event.put("license_plate", licensePlate);
+        event.put("exit_time", exitTime);
 
         RequestSpecification request = given()
                 .contentType(ContentType.JSON)

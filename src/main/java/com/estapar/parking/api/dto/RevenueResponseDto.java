@@ -12,7 +12,6 @@ import java.time.Instant;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class RevenueResponseDto {
     
     private BigDecimal amount;
@@ -21,9 +20,9 @@ public class RevenueResponseDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private Instant timestamp;
     
-    public RevenueResponseDto(BigDecimal amount) {
+    public RevenueResponseDto(BigDecimal amount, String currency, Instant timestamp) {
         this.amount = amount;
-        this.currency = "BRL";
-        this.timestamp = Instant.now();
+        this.currency = currency;
+        this.timestamp = timestamp;
     }
 }

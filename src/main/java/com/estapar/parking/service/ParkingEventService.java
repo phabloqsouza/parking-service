@@ -17,7 +17,6 @@ import java.util.UUID;
 public class ParkingEventService {
     
     private static final Logger logger = LoggerFactory.getLogger(ParkingEventService.class);
-    private static final int MAX_RETRY_ATTEMPTS = 3;
     
     private final ParkingSessionRepository sessionRepository;
     private final SectorRepository sectorRepository;
