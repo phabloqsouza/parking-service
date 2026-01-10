@@ -28,10 +28,6 @@
         <cucumber.version>7.14.0</cucumber.version>
         <rest-assured.version>5.3.2</rest-assured.version>
         <testcontainers.version>1.19.1</testcontainers.version>
-        <!-- Flyway configuration defaults (can be overridden via -D flags or match application.yml) -->
-        <flyway.url>jdbc:mysql://localhost:3306/parking_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true</flyway.url>
-        <flyway.user>parking_user</flyway.user>
-        <flyway.password>parking_password</flyway.password>
     </properties>
     
     <dependencies>
@@ -215,11 +211,9 @@
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
                 <configuration>
-                    <!-- Flyway configuration matches application.yml values -->
-                    <!-- Can be overridden via command line: mvn flyway:migrate -Dflyway.url=... -->
-                    <url>${flyway.url}</url>
-                    <user>${flyway.user}</user>
-                    <password>${flyway.password}</password>
+                    <!-- Database configuration must be provided via command line or environment variables -->
+                    <!-- Example: mvn flyway:migrate -Dflyway.url=... -Dflyway.user=... -Dflyway.password=... -->
+                    <!-- Or set environment variables: FLYWAY_URL, FLYWAY_USER, FLYWAY_PASSWORD -->
                     <locations>
                         <location>classpath:db/migration</location>
                     </locations>

@@ -102,9 +102,11 @@ This microservice follows **Clean Architecture** principles with clear separatio
    - Create database: `parking_db`
    - User: `parking_user`
    - Password: `parking_password`
+   - Or set environment variables: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`
 
-4. **Update application.yml** if needed
-   - Database connection details
+4. **Database configuration** (optional)
+   - Default values are in `application.yml` for local development
+   - Override with environment variables for different environments (see Configuration section)
    - Simulator URL (default: `http://localhost:8080`)
 
 5. **Run the application**
@@ -438,6 +440,12 @@ Key configuration in `application.yml`:
 server:
   port: 3003
 
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/parking_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true}
+    username: ${SPRING_DATASOURCE_USERNAME:parking_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:parking_password}
+
 parking:
   simulator:
     url: http://localhost:8080
@@ -454,6 +462,42 @@ parking:
   
   api:
     use-local-timezone: false  # UTC for API responses
+```
+
+### Environment Variables
+
+Database configuration can be overridden using environment variables (best practice for production):
+
+**Database Configuration:**
+- `SPRING_DATASOURCE_URL` - Database connection URL (default: `jdbc:mysql://localhost:3306/parking_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true`)
+- `SPRING_DATASOURCE_USERNAME` - Database username (default: `parking_user`)
+- `SPRING_DATASOURCE_PASSWORD` - Database password (default: `parking_password`)
+
+**Example (Linux/Mac):**
+```bash
+export SPRING_DATASOURCE_URL=jdbc:mysql://production-db:3306/parking_db
+export SPRING_DATASOURCE_USERNAME=prod_user
+export SPRING_DATASOURCE_PASSWORD=prod_password
+mvn spring-boot:run
+```
+
+**Example (Windows PowerShell):**
+```powershell
+$env:SPRING_DATASOURCE_URL="jdbc:mysql://production-db:3306/parking_db"
+$env:SPRING_DATASOURCE_USERNAME="prod_user"
+$env:SPRING_DATASOURCE_PASSWORD="prod_password"
+mvn spring-boot:run
+```
+
+**For Docker Compose:**
+Environment variables can be set in `docker-compose.yml` or a `.env` file for different environments.
+
+**For Manual Flyway Migrations (Maven Plugin):**
+```bash
+mvn flyway:migrate \
+  -Dflyway.url=${SPRING_DATASOURCE_URL} \
+  -Dflyway.user=${SPRING_DATASOURCE_USERNAME} \
+  -Dflyway.password=${SPRING_DATASOURCE_PASSWORD}
 ```
 
 ## Project Structure
@@ -486,7 +530,7 @@ src/
 ### Application won't start
 
 - Check MySQL is running and accessible
-- Verify database credentials in `application.yml`
+- Verify database credentials in `application.yml` or environment variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`)
 - Check simulator is running on port 8080
 - Review application logs for errors
 
@@ -500,9 +544,10 @@ src/
 ### Database connection issues
 
 - Verify MySQL is running: `docker ps`
-- Check connection string in `application.yml`
-- Verify database exists: `mysql -u parking_user -p`
+- Check connection string in `application.yml` or environment variables
+- Verify database exists: `mysql -u parking_user -p` (or use your configured credentials)
 - Check Flyway migration status in logs
+- Ensure environment variables are properly set (if overriding defaults)
 
 ## Future Enhancements
 
