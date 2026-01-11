@@ -3,40 +3,34 @@ package com.estapar.parking.component.steps;
 import io.restassured.response.Response;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Component
 public class TestContext {
     
     private Response lastResponse;
-    private String vehicleLicensePlate;
-    private String lastSectorCode;
+    private final Map<String, Object> contextData = new HashMap<>();
     
     public Response getLastResponse() {
         return lastResponse;
     }
     
-    public void setLastResponse(Response lastResponse) {
-        this.lastResponse = lastResponse;
+    public void setLastResponse(Response response) {
+        this.lastResponse = response;
     }
     
-    public String getVehicleLicensePlate() {
-        return vehicleLicensePlate;
+    public void put(String key, Object value) {
+        contextData.put(key, value);
     }
     
-    public void setVehicleLicensePlate(String vehicleLicensePlate) {
-        this.vehicleLicensePlate = vehicleLicensePlate;
+    @SuppressWarnings("unchecked")
+    public <T> T get(String key) {
+        return (T) contextData.get(key);
     }
     
-    public String getLastSectorCode() {
-        return lastSectorCode;
-    }
-    
-    public void setLastSectorCode(String lastSectorCode) {
-        this.lastSectorCode = lastSectorCode;
-    }
-    
-    public void reset() {
-        this.lastResponse = null;
-        this.vehicleLicensePlate = null;
-        this.lastSectorCode = null;
+    public void clear() {
+        contextData.clear();
+        lastResponse = null;
     }
 }

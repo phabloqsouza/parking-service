@@ -9,8 +9,8 @@ import org.junit.platform.suite.api.Suite;
 @Suite
 @IncludeEngines("cucumber")
 @SelectClasspathResource("component/features")
-@ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME, value = "pretty,html:target/cucumber-reports,cucumber.json:target/cucumber-reports/cucumber.json")
-@ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = "com.estapar.parking.component.steps,com.estapar.parking.component.config")
-@ConfigurationParameter(key = Constants.EXECUTION_DRY_RUN_PROPERTY_NAME, value = "false")
+@ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME, value = "pretty, html:target/cucumber-reports/cucumber.html, json:target/cucumber-reports/cucumber.json")
+@ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = "com.estapar.parking.component.steps")
+@ConfigurationParameter(key = Constants.FEATURES_PROPERTY_NAME, value = "classpath:component/features")
 public class CucumberComponentTestRunner {
 }

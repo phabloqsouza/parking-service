@@ -18,7 +18,7 @@ public class PricingStrategyResolverImpl implements PricingStrategyResolver {
     
     @Override
     @Transactional(readOnly = true)
-    public PricingStrategy findStrategyByOccupancy(BigDecimal occupancyPercentage) {
+    public PricingStrategy findStrategy(BigDecimal occupancyPercentage) {
         return repository.findActiveStrategyByOccupancyRange(occupancyPercentage)
                 .orElseThrow(() -> new IllegalStateException(
                     String.format("No active pricing strategy found for occupancy percentage: %.2f", occupancyPercentage)));

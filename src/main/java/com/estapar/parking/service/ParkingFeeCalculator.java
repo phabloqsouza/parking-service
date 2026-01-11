@@ -1,6 +1,7 @@
 package com.estapar.parking.service;
 
 import com.estapar.parking.config.DecimalConfig;
+import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -17,11 +18,9 @@ public class ParkingFeeCalculator {
         this.decimalConfig = decimalConfig;
     }
     
-    public BigDecimal calculateFee(Instant entryTime, Instant exitTime, BigDecimal basePrice) {
-        if (entryTime == null || exitTime == null || basePrice == null) {
-            throw new IllegalArgumentException("Entry time, exit time, and base price must not be null");
-        }
-        
+    public BigDecimal calculateFee(@NotNull(message = "Entry time must not be null") Instant entryTime,
+                                   @NotNull(message = "Exit time must not be null") Instant exitTime,
+                                   @NotNull(message = "Base price must not be null") BigDecimal basePrice) {
         if (exitTime.isBefore(entryTime)) {
             throw new IllegalArgumentException("Exit time must be after entry time");
         }

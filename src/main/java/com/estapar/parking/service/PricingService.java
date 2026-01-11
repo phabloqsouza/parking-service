@@ -2,6 +2,7 @@ package com.estapar.parking.service;
 
 import com.estapar.parking.config.DecimalConfig;
 import com.estapar.parking.infrastructure.persistence.entity.PricingStrategy;
+import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -34,19 +35,16 @@ public class PricingService {
         return percentage.setScale(decimalConfig.getPercentageScale(), decimalConfig.getRoundingMode());
     }
     
-    public BigDecimal calculateBasePriceWithDynamicPricing(BigDecimal basePrice, BigDecimal occupancyPercentage) {
-        if (basePrice == null || occupancyPercentage == null) {
-            throw new IllegalArgumentException("Base price and occupancy percentage must not be null");
-        }
-        
-        PricingStrategy strategy = strategyResolver.findStrategyByOccupancy(occupancyPercentage);
+    public BigDecimal applyPricing(@NotNull(message = "Base price must not be null") BigDecimal basePrice,
+                                    @NotNull(message = "Occupancy percentage must not be null") BigDecimal occupancyPercentage) {
+        PricingStrategy strategy = strategyResolver.findStrategy(occupancyPercentage);
         BigDecimal multiplier = strategy.getMultiplier();
         
         BigDecimal priceWithDynamicPricing = basePrice.multiply(multiplier);
         return priceWithDynamicPricing.setScale(decimalConfig.getCurrencyScale(), decimalConfig.getRoundingMode());
     }
     
-    public BigDecimal calculateFinalPrice(Instant entryTime, Instant exitTime, BigDecimal basePriceWithDynamicPricing) {
+    public BigDecimal calculateFee(Instant entryTime, Instant exitTime, BigDecimal basePriceWithDynamicPricing) {
         return feeCalculator.calculateFee(entryTime, exitTime, basePriceWithDynamicPricing);
     }
 }

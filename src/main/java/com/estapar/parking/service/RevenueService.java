@@ -36,7 +36,7 @@ public class RevenueService {
     
     @Transactional(readOnly = true)
     public BigDecimal getRevenue(UUID garageId, LocalDate date, String sectorCode) {
-        Garage garage = garageResolver.resolveGarage(garageId);
+        Garage garage = garageResolver.getGarage(garageId);
         
         Sector sector = sectorRepository.findByGarageIdAndSectorCode(garage.getId(), sectorCode)
                 .orElseThrow(() -> new IllegalStateException("Sector not found: " + sectorCode));

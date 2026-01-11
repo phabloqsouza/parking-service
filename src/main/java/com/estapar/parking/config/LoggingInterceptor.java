@@ -20,7 +20,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
     
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        String correlationId = getOrCreateCorrelationId(request);
+        String correlationId = getCorrelationId(request);
         MDC.put(CORRELATION_ID_MDC_KEY, correlationId);
         response.setHeader(CORRELATION_ID_HEADER, correlationId);
         
@@ -47,7 +47,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
         MDC.clear();
     }
     
-    private String getOrCreateCorrelationId(HttpServletRequest request) {
+    private String getCorrelationId(HttpServletRequest request) {
         String correlationId = request.getHeader(CORRELATION_ID_HEADER);
         if (correlationId == null || correlationId.isBlank()) {
             correlationId = UUID.randomUUID().toString();

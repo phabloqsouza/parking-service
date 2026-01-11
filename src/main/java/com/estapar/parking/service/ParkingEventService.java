@@ -45,7 +45,7 @@ public class ParkingEventService {
     
     @Transactional
     public void handleEntryEvent(UUID garageId, String vehicleLicensePlate, Instant entryTime, String sectorCode) {
-        Garage garage = garageResolver.resolveGarage(garageId);
+        Garage garage = garageResolver.getGarage(garageId);
         
         Sector sector = sectorRepository.findByGarageIdAndSectorCode(garage.getId(), sectorCode)
                 .orElseThrow(() -> new IllegalStateException("Sector not found: " + sectorCode));
@@ -68,7 +68,7 @@ public class ParkingEventService {
         // Calculate dynamic pricing
         BigDecimal occupancyPercentage = pricingService.calculateOccupancy(
                 sector.getOccupiedCount(), sector.getMaxCapacity());
-        BigDecimal basePriceWithDynamicPricing = pricingService.calculateBasePriceWithDynamicPricing(
+        BigDecimal basePriceWithDynamicPricing = pricingService.applyPricing(
                 sector.getBasePrice(), occupancyPercentage);
         
         // Reserve capacity (increment occupied count) with optimistic locking
@@ -91,7 +91,7 @@ public class ParkingEventService {
     
     @Transactional
     public void handleParkedEvent(UUID garageId, String vehicleLicensePlate, BigDecimal latitude, BigDecimal longitude) {
-        Garage garage = garageResolver.resolveGarage(garageId);
+        Garage garage = garageResolver.getGarage(garageId);
         
         // Find active session
         ParkingSession session = sessionRepository
@@ -121,7 +121,7 @@ public class ParkingEventService {
         
         try {
             // Match coordinates with tolerance
-            ParkingSpot matchedSpot = spotLocationMatcher.findSpotByCoordinates(sectorSpots, latitude, longitude);
+            ParkingSpot matchedSpot = spotLocationMatcher.findSpot(sectorSpots, latitude, longitude);
             
             // Check if spot is already occupied (optimistic locking)
             if (Boolean.TRUE.equals(matchedSpot.getIsOccupied())) {
@@ -155,7 +155,7 @@ public class ParkingEventService {
     
     @Transactional
     public void handleExitEvent(UUID garageId, String vehicleLicensePlate, Instant exitTime) {
-        Garage garage = garageResolver.resolveGarage(garageId);
+        Garage garage = garageResolver.getGarage(garageId);
         
         // Find active session
         ParkingSession session = sessionRepository
@@ -164,7 +164,7 @@ public class ParkingEventService {
                     String.format("No active parking session found for vehicle: %s", vehicleLicensePlate)));
         
         // Calculate final price
-        BigDecimal finalPrice = pricingService.calculateFinalPrice(
+        BigDecimal finalPrice = pricingService.calculateFee(
                 session.getEntryTime(), exitTime, session.getBasePrice());
         
         // Free spot if assigned

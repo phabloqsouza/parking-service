@@ -6,5 +6,5 @@ import java.math.BigDecimal;
 
 public interface PricingStrategyResolver {
     
-    PricingStrategy findStrategyByOccupancy(BigDecimal occupancyPercentage);
+    PricingStrategy findStrategy(BigDecimal occupancyPercentage);
 }

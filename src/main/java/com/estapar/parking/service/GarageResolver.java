@@ -17,7 +17,7 @@ public class GarageResolver {
     }
     
     @Transactional(readOnly = true)
-    public Garage resolveGarage(UUID garageId) {
+    public Garage getGarage(UUID garageId) {
         if (garageId != null) {
             return garageRepository.findById(garageId)
                     .orElseThrow(() -> new IllegalStateException("Garage not found: " + garageId));

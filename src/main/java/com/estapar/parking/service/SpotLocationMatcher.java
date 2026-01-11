@@ -16,7 +16,7 @@ public class SpotLocationMatcher {
         this.tolerance = tolerance;
     }
     
-    public ParkingSpot findSpotByCoordinates(List<ParkingSpot> spots, BigDecimal latitude, BigDecimal longitude) {
+    public ParkingSpot findSpot(List<ParkingSpot> spots, BigDecimal latitude, BigDecimal longitude) {
         List<ParkingSpot> matchingSpots = spots.stream()
                 .filter(spot -> isWithinTolerance(spot.getLatitude(), latitude) 
                         && isWithinTolerance(spot.getLongitude(), longitude))

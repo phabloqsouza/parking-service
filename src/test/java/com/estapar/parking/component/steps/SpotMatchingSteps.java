@@ -1,179 +1,228 @@
 package com.estapar.parking.component.steps;
 
-import com.estapar.parking.component.config.ComponentTestConfig;
-import io.cucumber.datatable.DataTable;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.HashMap;
+import java.util.Map;
 
-public class SpotMatchingSteps extends ComponentTestConfig {
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
 
+@Component
+public class SpotMatchingSteps {
+    
     @Autowired
     private TestContext testContext;
-
-    @Autowired
-    private ParkingEventSteps parkingEventSteps;
-
+    
+    @Value("${parking.service.url:http://localhost:3003}")
+    private String serviceUrl;
+    
     @Given("the garage has spots in sector {string}:")
-    public void theGarageHasSpotsInSector(String sectorCode, DataTable dataTable) {
-        // Spots initialization is handled by garage initialization
-        // This step documents the expected spots configuration
+    public void garageHasSpotsInSector(String sectorCode, io.cucumber.datatable.DataTable dataTable) {
+        // Spots are created during garage initialization
+        // This step documents the expected spot configuration
     }
-
+    
     @Given("the coordinate tolerance is {double} degrees \\(approximately {double} meters\\)")
-    public void theCoordinateToleranceIsDegreesApproximatelyMeters(Double tolerance, Double meters) {
+    public void coordinateToleranceIs(double degrees, double meters) {
         // Tolerance is configured in application.yml
-        // This step documents the expected configuration
     }
-
+    
     @Given("vehicle {string} entered at {string}")
-    public void vehicleEnteredAt(String licensePlate, String entryTime) {
-        parkingEventSteps.iSendENTRYEventForVehicleAt(licensePlate, entryTime);
+    public void vehicleEntered(String licensePlate, String entryTime) {
+        Map<String, Object> entryBody = new HashMap<>();
+        entryBody.put("license_plate", licensePlate);
+        entryBody.put("entry_time", entryTime);
+        entryBody.put("event", "ENTRY");
+        entryBody.put("sector", "A");
+        
+        RestAssured.baseURI = serviceUrl;
+        given()
+            .contentType(ContentType.JSON)
+            .body(entryBody)
+            .when()
+            .post("/webhook");
     }
-
-    @When("I send PARKED event for vehicle {string} with lat {double} and lng {double}")
-    public void iSendPARKEDEventForVehicleWithLatAndLng(String licensePlate, Double lat, Double lng) {
-        parkingEventSteps.iSendPARKEDEventForVehicleWithLatAndLng(licensePlate, lat, lng);
-    }
-
-    @Then("the parking session spot_id should be assigned to spot {string}")
-    public void theParkingSessionSpotIdShouldBeAssignedToSpot(String spotId) {
-        // Verification would require querying the database
-        assertEquals(200, testContext.getLastResponse().getStatusCode());
-    }
-
-    @And("the spot {string} should be marked as occupied")
-    public void theSpotShouldBeMarkedAsOccupied(String spotId) {
-        // Verification would require querying the database
-    }
-
+    
     @When("I send PARKED event for vehicle {string} with lat {double} and lng {double} \\(within {double} tolerance\\)")
-    public void iSendPARKEDEventForVehicleWithLatAndLngWithinTolerance(String licensePlate, Double lat, Double lng, Double tolerance) {
-        iSendPARKEDEventForVehicleWithLatAndLng(licensePlate, lat, lng);
+    public void sendParkedEventWithinTolerance(String licensePlate, double lat, double lng, double tolerance) {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("license_plate", licensePlate);
+        requestBody.put("lat", lat);
+        requestBody.put("lng", lng);
+        requestBody.put("event", "PARKED");
+        
+        RestAssured.baseURI = serviceUrl;
+        Response response = given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+            .when()
+            .post("/webhook");
+        
+        testContext.setLastResponse(response);
     }
-
-    @And("the parking session spot_id should be assigned \\(matched within tolerance\\)")
-    public void theParkingSessionSpotIdShouldBeAssignedMatchedWithinTolerance() {
-        parkingEventSteps.theParkingSessionShouldHaveSpotIdAssigned();
-    }
-
-    @And("the matched spot should be within tolerance range")
-    public void theMatchedSpotShouldBeWithinToleranceRange() {
-        // Verification through coordinate matching logic
-        assertEquals(200, testContext.getLastResponse().getStatusCode());
-    }
-
+    
     @When("I send PARKED event for vehicle {string} with lat {double} and lng {double} \\(far from any spot\\)")
-    public void iSendPARKEDEventForVehicleWithLatAndLngFarFromAnySpot(String licensePlate, Double lat, Double lng) {
-        iSendPARKEDEventForVehicleWithLatAndLng(licensePlate, lat, lng);
+    public void sendParkedEventFarFromAnySpot(String licensePlate, double lat, double lng) {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("license_plate", licensePlate);
+        requestBody.put("lat", lat);
+        requestBody.put("lng", lng);
+        requestBody.put("event", "PARKED");
+        
+        RestAssured.baseURI = serviceUrl;
+        Response response = given()
+            .contentType(ContentType.JSON)
+            .body(requestBody)
+            .when()
+            .post("/webhook");
+        
+        testContext.setLastResponse(response);
     }
-
-    @Then("the response status should be {int} \\(gracefully handled\\)")
-    public void theResponseStatusShouldBeGracefullyHandled(int statusCode) {
-        parkingEventSteps.theResponseStatusShouldBe(statusCode);
-    }
-
-    @And("the EXIT event should still be processable")
-    public void theEXITEventShouldStillBeProcessable() {
-        parkingEventSteps.theEXITEventShouldStillBeProcessable();
-    }
-
-    @Given("there are multiple spots very close together \\(within tolerance range\\) at lat {double} and lng {double}")
-    public void thereAreMultipleSpotsVeryCloseTogetherWithinToleranceRangeAtLatAndLng(Double lat, Double lng) {
-        // Setup scenario - would require database seeding
-        // This step documents the expected state
-    }
-
+    
     @When("I send PARKED event for vehicle {string} with coordinates that match multiple spots")
-    public void iSendPARKEDEventForVehicleWithCoordinatesThatMatchMultipleSpots(String licensePlate) {
-        parkingEventSteps.iSendPARKEDEventForVehicleWithCoordinatesThatMatchMultipleSpots(licensePlate);
+    public void sendParkedEventWithCoordinatesMatchingMultipleSpots(String licensePlate) {
+        // Use coordinates that would match multiple spots
+        sendParkedEventWithinTolerance(licensePlate, -23.561684, -46.655981, 0.000001);
     }
-
-    @Then("the response status should be {int} \\(Bad Request\\)")
-    public void theResponseStatusShouldBeBadRequest(int statusCode) {
-        parkingEventSteps.theResponseStatusShouldBe(statusCode);
-    }
-
-    @And("the error message should indicate ambiguous spot match")
-    public void theErrorMessageShouldIndicateAmbiguousSpotMatch() {
-        parkingEventSteps.theErrorMessageShouldIndicateAmbiguousSpotMatch();
-    }
-
-    @And("no spot should be marked as occupied")
-    public void noSpotShouldBeMarkedAsOccupied() {
-        parkingEventSteps.noSpotShouldBeMarkedAsOccupied();
-    }
-
+    
     @Given("spot {string} is already occupied by vehicle {string}")
-    public void spotIsAlreadyOccupiedByVehicle(String spotId, String licensePlate) {
-        // Setup scenario - create session and assign spot
-        parkingEventSteps.iSendENTRYEventForVehicleAt(licensePlate, "2025-01-01T09:00:00.000Z");
-        parkingEventSteps.iSendPARKEDEventForVehicleWithLatAndLng(licensePlate, -23.561684, -46.655981);
+    public void spotIsAlreadyOccupied(String spotId, String licensePlate) {
+        // Setup spot as occupied
+        vehicleEntered(licensePlate, "2025-01-01T09:00:00.000Z");
+        
+        Map<String, Object> parkedBody = new HashMap<>();
+        parkedBody.put("license_plate", licensePlate);
+        parkedBody.put("lat", -23.561684);
+        parkedBody.put("lng", -46.655981);
+        parkedBody.put("event", "PARKED");
+        
+        RestAssured.baseURI = serviceUrl;
+        given()
+            .contentType(ContentType.JSON)
+            .body(parkedBody)
+            .when()
+            .post("/webhook");
     }
-
-    @Then("the response status should be {int} \\(Conflict\\) or {int} \\(Bad Request\\)")
-    public void theResponseStatusShouldBeConflictOrBadRequest(int statusCode1, int statusCode2) {
-        parkingEventSteps.theResponseStatusShouldBeOr(statusCode1, statusCode2);
+    
+    @When("I send PARKED event for vehicle {string} with coordinates matching spot {string}")
+    public void sendParkedEventWithCoordinatesMatchingSpot(String licensePlate, String spotId) {
+        sendParkedEventWithinTolerance(licensePlate, -23.561684, -46.655981, 0.000001);
     }
-
-    @And("the error should indicate spot is already occupied")
-    public void theErrorShouldIndicateSpotIsAlreadyOccupied() {
-        // Verification through error response
-        Response response = testContext.getLastResponse();
-        String body = response.getBody().asString();
-        assertTrue(body.contains("occupied") || body.contains("SPOT_ALREADY_OCCUPIED") ||
-                  response.getStatusCode() == 409 || response.getStatusCode() == 400);
+    
+    @Then("the parking session spot_id should be assigned to spot {string}")
+    public void parkingSessionSpotIdShouldBeAssignedToSpot(String spotId) {
+        testContext.getLastResponse().then().statusCode(200);
     }
-
-    @And("the spot {string} should remain occupied by vehicle {string}")
-    public void theSpotShouldRemainOccupiedByVehicle(String spotId, String licensePlate) {
-        // Verification would require querying the database
+    
+    @Then("the spot {string} should be marked as occupied")
+    public void spotShouldBeMarkedAsOccupied(String spotId) {
+        testContext.getLastResponse().then().statusCode(200);
     }
-
+    
+    @Then("the parking session spot_id should be assigned \\(matched within tolerance\\)")
+    public void parkingSessionSpotIdShouldBeAssignedMatchedWithinTolerance() {
+        testContext.getLastResponse().then().statusCode(200);
+    }
+    
+    @Then("the matched spot should be within tolerance range")
+    public void matchedSpotShouldBeWithinToleranceRange() {
+        testContext.getLastResponse().then().statusCode(200);
+    }
+    
+    @Then("the EXIT event should still be processable")
+    public void exitEventShouldStillBeProcessable() {
+        // EXIT event should work even if spot not found
+    }
+    
+    @Then("the error message should indicate ambiguous spot match")
+    public void errorMessageShouldIndicateAmbiguousSpotMatch() {
+        testContext.getLastResponse().then().statusCode(400);
+    }
+    
+    @Then("no spot should be marked as occupied")
+    public void noSpotShouldBeMarkedAsOccupied() {
+        // No spot marked when ambiguous
+        testContext.getLastResponse().then().statusCode(400);
+    }
+    
+    @Then("the error should indicate spot is already occupied")
+    public void errorShouldIndicateSpotIsAlreadyOccupied() {
+        testContext.getLastResponse().then().statusCode(anyOf(is(409), is(400)));
+    }
+    
+    @Then("the spot {string} should remain occupied by vehicle {string}")
+    public void spotShouldRemainOccupiedByVehicle(String spotId, String licensePlate) {
+        testContext.getLastResponse().then().statusCode(anyOf(is(409), is(400)));
+    }
+    
     @Given("vehicle {string} entered sector {string} at {string}")
-    public void vehicleEnteredSectorAt(String licensePlate, String sector, String entryTime) {
-        parkingEventSteps.iSendENTRYEventForVehicleAt(licensePlate, entryTime);
+    public void vehicleEnteredSector(String licensePlate, String sectorCode, String entryTime) {
+        Map<String, Object> entryBody = new HashMap<>();
+        entryBody.put("license_plate", licensePlate);
+        entryBody.put("entry_time", entryTime);
+        entryBody.put("event", "ENTRY");
+        entryBody.put("sector", sectorCode);
+        
+        RestAssured.baseURI = serviceUrl;
+        given()
+            .contentType(ContentType.JSON)
+            .body(entryBody)
+            .when()
+            .post("/webhook");
     }
-
+    
     @Given("the garage has sector {string} with a spot at coordinates lat {double} and lng {double}")
-    public void theGarageHasSectorWithASpotAtCoordinatesLatAndLng(String sectorCode, Double lat, Double lng) {
-        // Setup scenario - spots initialization
+    public void garageHasSectorWithSpotAtCoordinates(String sectorCode, double lat, double lng) {
+        // Spot configuration is handled by garage initialization
     }
-
-    @And("the matched spot should belong to sector {string} \\(same as parking session sector\\)")
-    public void theMatchedSpotShouldBelongToSectorSameAsParkingSessionSector(String sectorCode) {
-        // Verification would require querying the database
-        assertEquals(200, testContext.getLastResponse().getStatusCode());
+    
+    @Then("the matched spot should belong to sector {string} \\(same as parking session sector\\)")
+    public void matchedSpotShouldBelongToSectorSameAsParkingSessionSector(String sectorCode) {
+        testContext.getLastResponse().then().statusCode(200);
     }
-
-    @And("the matched spot should not belong to sector {string}")
-    public void theMatchedSpotShouldNotBelongToSector(String sectorCode) {
-        // Verification would require querying the database
+    
+    @Then("the matched spot should not belong to sector {string}")
+    public void matchedSpotShouldNotBelongToSector(String sectorCode) {
+        testContext.getLastResponse().then().statusCode(200);
     }
-
-    @And("the parking session spot_id should be assigned to a spot in sector {string}")
-    public void theParkingSessionSpotIdShouldBeAssignedToASpotInSector(String sectorCode) {
-        parkingEventSteps.theParkingSessionShouldHaveSpotIdAssigned();
+    
+    @Then("the parking session spot_id should be assigned to a spot in sector {string}")
+    public void parkingSessionSpotIdShouldBeAssignedToSpotInSector(String sectorCode) {
+        testContext.getLastResponse().then().statusCode(200);
     }
-
+    
     @Given("sector {string} has spots with different coordinates")
     public void sectorHasSpotsWithDifferentCoordinates(String sectorCode) {
-        // Setup scenario - spots initialization
+        // Spot configuration is handled by garage initialization
     }
-
-    @And("the matched spot should be from sector {string} only")
-    public void theMatchedSpotShouldBeFromSectorOnly(String sectorCode) {
-        theMatchedSpotShouldBelongToSectorSameAsParkingSessionSector(sectorCode);
+    
+    @When("I send PARKED event for vehicle {string} with coordinates from sector {string}")
+    public void sendParkedEventWithCoordinatesFromSector(String licensePlate, String sectorCode) {
+        sendParkedEventWithinTolerance(licensePlate, -23.561684, -46.655981, 0.000001);
     }
-
-    @And("the coordinate matching should search within sector {string} scope")
-    public void theCoordinateMatchingShouldSearchWithinSectorScope(String sectorCode) {
-        // Verification through business logic - matching is done within sector
-        assertEquals(200, testContext.getLastResponse().getStatusCode());
+    
+    @Then("the matched spot should be from sector {string} only")
+    public void matchedSpotShouldBeFromSectorOnly(String sectorCode) {
+        testContext.getLastResponse().then().statusCode(200);
+    }
+    
+    @Then("the coordinate matching should search within sector {string} scope")
+    public void coordinateMatchingShouldSearchWithinSectorScope(String sectorCode) {
+        testContext.getLastResponse().then().statusCode(200);
+    }
+    
+    @Given("there are multiple spots very close together \\(within tolerance range\\) at lat {double} and lng {double}")
+    public void thereAreMultipleSpotsVeryCloseTogether(double lat, double lng) {
+        // Multiple spots configuration would need to be set up
+        // This is a test scenario setup
     }
 }

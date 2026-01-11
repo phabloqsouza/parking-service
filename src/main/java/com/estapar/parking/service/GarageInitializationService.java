@@ -42,20 +42,45 @@ public class GarageInitializationService {
         logger.info("Starting garage initialization from simulator...");
         
         try {
+            // Check if garage is already initialized (has sectors)
+            Optional<Garage> existingDefault = garageRepository.findByIsDefaultTrue();
+            if (existingDefault.isPresent()) {
+                Garage garage = existingDefault.get();
+                List<Sector> existingSectors = sectorRepository.findByGarageId(garage.getId());
+                
+                // If garage already has sectors, consider it initialized - skip initialization
+                if (!existingSectors.isEmpty()) {
+                    logger.info("Garage already initialized with {} sectors. Skipping initialization. Garage ID: {}", 
+                               existingSectors.size(), garage.getId());
+                    return;
+                }
+                
+                // Garage exists but has no sectors - proceed with initialization
+                logger.info("Default garage exists but has no sectors. Proceeding with initialization. Garage ID: {}", 
+                           garage.getId());
+            }
+            
             GarageSimulatorResponseDto config = simulatorClient.getGarageConfiguration();
             
-            if (config == null || config.garage() == null || config.garage().isEmpty()) {
-                throw new IllegalStateException("Simulator returned empty garage configuration");
+            if (config == null) {
+                throw new IllegalStateException("Simulator returned null garage configuration");
             }
             
             // Get or create default garage
-            Garage garage = getOrCreateDefaultGarage();
+            Garage garage = getDefaultGarage();
             
             // Build complete garage structure with sectors
-            List<Sector> sectors = buildSectors(garage.getId(), config.garage());
+            List<Sector> sectors = createSectors(garage.getId(), config.garage());
             
-            // Validate garage structure: at least one sector, each sector has at least one spot
-            validateGarageStructure(sectors, config.spots());
+            // Validate each sector has at least one spot (structure validation)
+            sectors.stream()
+                .filter(sector -> config.spots().stream()
+                    .noneMatch(spot -> spot.sector().equals(sector.getSectorCode())))
+                .findFirst()
+                .ifPresent(sector -> {
+                    throw new IllegalStateException(
+                        String.format("Sector %s must have at least one spot", sector.getSectorCode()));
+                });
             
             // Save all sectors and their spots in one transaction
             for (Sector sector : sectors) {
@@ -72,14 +97,14 @@ public class GarageInitializationService {
                     logger.debug("Updated sector: {} for garage {}", sector.getSectorCode(), garage.getId());
                     
                     // Update spots for existing sector
-                    updateSpotsForSector(existing.getId(), sector.getSectorCode(), config.spots());
+                    saveSpots(existing.getId(), sector.getSectorCode(), config.spots());
                 } else {
                     // Save new sector (spots will be saved separately as there's no cascade)
                     sectorRepository.save(sector);
                     logger.debug("Created sector: {} for garage {}", sector.getSectorCode(), garage.getId());
                     
                     // Save spots for new sector
-                    saveSpotsForSector(sector.getId(), sector.getSectorCode(), config.spots());
+                    saveSpots(sector.getId(), sector.getSectorCode(), config.spots());
                 }
             }
             
@@ -91,16 +116,30 @@ public class GarageInitializationService {
         }
     }
     
-    private Garage getOrCreateDefaultGarage() {
+    private Garage getDefaultGarage() {
         // Check if default garage exists
         Optional<Garage> existingDefault = garageRepository.findByIsDefaultTrue();
         
         if (existingDefault.isPresent()) {
-            logger.info("Default garage already exists: {}", existingDefault.get().getId());
-            return existingDefault.get();
+            Garage garage = existingDefault.get();
+            logger.info("Default garage already exists: {}", garage.getId());
+            return garage;
         }
         
-        // Create new garage as default
+        // Check if any garage exists (in case isDefault flag was lost)
+        List<Garage> allGarages = garageRepository.findAll();
+        if (!allGarages.isEmpty()) {
+            // Use the first garage and mark it as default
+            Garage garage = allGarages.get(0);
+            if (!Boolean.TRUE.equals(garage.getIsDefault())) {
+                garage.setIsDefault(true);
+                garage = garageRepository.save(garage);
+                logger.info("Marked existing garage as default: {}", garage.getId());
+            }
+            return garage;
+        }
+        
+        // No garage exists - create new garage as default
         Garage garage = new Garage();
         garage.setId(UUID.randomUUID());
         garage.setName("Default Garage");
@@ -113,9 +152,9 @@ public class GarageInitializationService {
         return garage;
     }
     
-    private List<Sector> buildSectors(UUID garageId, 
+    private List<Sector> createSectors(UUID garageId, 
                                       List<GarageSimulatorResponseDto.SectorConfigDto> sectorConfigs) {
-        logger.info("Building {} sectors for garage {}", sectorConfigs.size(), garageId);
+        logger.info("Creating {} sectors for garage {}", sectorConfigs.size(), garageId);
         
         return sectorConfigs.stream()
             .map(config -> {
@@ -131,33 +170,12 @@ public class GarageInitializationService {
             .toList();
     }
     
-    private void validateGarageStructure(List<Sector> sectors, List<GarageSimulatorResponseDto.SpotConfigDto> spotConfigs) {
-        if (sectors == null || sectors.isEmpty()) {
-            throw new IllegalStateException("Garage must have at least one sector");
-        }
-        
-        if (spotConfigs == null || spotConfigs.isEmpty()) {
-            throw new IllegalStateException("Garage must have at least one spot");
-        }
-        
-        // Validate each sector has at least one spot
-        sectors.stream()
-            .filter(sector -> spotConfigs.stream()
-                .noneMatch(spot -> spot.sector().equals(sector.getSectorCode())))
-            .findFirst()
-            .ifPresent(sector -> {
-                throw new IllegalStateException(
-                    String.format("Sector %s must have at least one spot", sector.getSectorCode()));
-            });
-    }
-    
-    private void saveSpotsForSector(UUID sectorId, String sectorCode, List<GarageSimulatorResponseDto.SpotConfigDto> spotConfigs) {
+    private void saveSpots(UUID sectorId, String sectorCode, List<GarageSimulatorResponseDto.SpotConfigDto> spotConfigs) {
         // Filter spots for this sector
         List<GarageSimulatorResponseDto.SpotConfigDto> sectorSpots = spotConfigs.stream()
             .filter(spot -> spot.sector().equals(sectorCode))
             .toList();
         
-        // Validation already done in validateGarageStructure, but double-check for safety
         if (sectorSpots.isEmpty()) {
             throw new IllegalStateException("Sector " + sectorCode + " must have at least one spot");
         }
@@ -200,8 +218,4 @@ public class GarageInitializationService {
         });
     }
     
-    private void updateSpotsForSector(UUID sectorId, String sectorCode, List<GarageSimulatorResponseDto.SpotConfigDto> spotConfigs) {
-        // Same logic as saveSpotsForSector but for existing sectors
-        saveSpotsForSector(sectorId, sectorCode, spotConfigs);
-    }
 }
