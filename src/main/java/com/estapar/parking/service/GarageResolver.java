@@ -2,19 +2,17 @@ package com.estapar.parking.service;
 
 import com.estapar.parking.infrastructure.persistence.entity.Garage;
 import com.estapar.parking.infrastructure.persistence.repository.GarageRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class GarageResolver {
     
     private final GarageRepository garageRepository;
-    
-    public GarageResolver(GarageRepository garageRepository) {
-        this.garageRepository = garageRepository;
-    }
     
     @Transactional(readOnly = true)
     public Garage getGarage(UUID garageId) {

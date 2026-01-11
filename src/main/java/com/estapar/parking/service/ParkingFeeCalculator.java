@@ -2,21 +2,19 @@ package com.estapar.parking.service;
 
 import com.estapar.parking.config.DecimalConfig;
 import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 
+@RequiredArgsConstructor
 public class ParkingFeeCalculator {
     
     private static final int FREE_MINUTES = 30;
     private static final int MINUTES_PER_HOUR = 60;
     
     private final DecimalConfig decimalConfig;
-    
-    public ParkingFeeCalculator(DecimalConfig decimalConfig) {
-        this.decimalConfig = decimalConfig;
-    }
     
     public BigDecimal calculateFee(@NotNull(message = "Entry time must not be null") Instant entryTime,
                                    @NotNull(message = "Exit time must not be null") Instant exitTime,

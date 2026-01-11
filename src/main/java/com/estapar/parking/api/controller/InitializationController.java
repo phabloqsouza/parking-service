@@ -1,6 +1,7 @@
 package com.estapar.parking.api.controller;
 
 import com.estapar.parking.service.GarageInitializationService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -11,15 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/internal")
+@RequiredArgsConstructor
 public class InitializationController {
     
     private static final Logger logger = LoggerFactory.getLogger(InitializationController.class);
     
     private final GarageInitializationService initializationService;
-    
-    public InitializationController(GarageInitializationService initializationService) {
-        this.initializationService = initializationService;
-    }
     
     @PostMapping("/initialize")
     public ResponseEntity<String> initialize() {

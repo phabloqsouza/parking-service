@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,17 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
            "AND ps.exit_time IS NOT NULL " +
            "AND ps.final_price IS NOT NULL", nativeQuery = true)
     List<ParkingSession> findCompletedSessionsByGarageAndSectorAndDate(
+            @Param("garageId") UUID garageId,
+            @Param("sectorId") UUID sectorId,
+            @Param("date") Instant date);
+    
+    @Query(value = "SELECT COALESCE(SUM(ps.final_price), 0) FROM parking_session ps " +
+           "WHERE ps.garage_id = :garageId " +
+           "AND ps.sector_id = :sectorId " +
+           "AND DATE(ps.entry_time) = DATE(:date) " +
+           "AND ps.exit_time IS NOT NULL " +
+           "AND ps.final_price IS NOT NULL", nativeQuery = true)
+    BigDecimal sumRevenueByGarageAndSectorAndDate(
             @Param("garageId") UUID garageId,
             @Param("sectorId") UUID sectorId,
             @Param("date") Instant date);

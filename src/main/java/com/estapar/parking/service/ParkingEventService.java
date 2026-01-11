@@ -4,6 +4,7 @@ import com.estapar.parking.api.mapper.ParkingMapper;
 import com.estapar.parking.exception.*;
 import com.estapar.parking.infrastructure.persistence.entity.*;
 import com.estapar.parking.infrastructure.persistence.repository.*;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class ParkingEventService {
     
     private static final Logger logger = LoggerFactory.getLogger(ParkingEventService.class);
@@ -23,25 +25,8 @@ public class ParkingEventService {
     private final SectorRepository sectorRepository;
     private final ParkingSpotRepository spotRepository;
     private final PricingService pricingService;
-    private final SpotLocationMatcher spotLocationMatcher;
     private final GarageResolver garageResolver;
     private final ParkingMapper parkingMapper;
-    
-    public ParkingEventService(ParkingSessionRepository sessionRepository,
-                               SectorRepository sectorRepository,
-                               ParkingSpotRepository spotRepository,
-                               PricingService pricingService,
-                               SpotLocationMatcher spotLocationMatcher,
-                               GarageResolver garageResolver,
-                               ParkingMapper parkingMapper) {
-        this.sessionRepository = sessionRepository;
-        this.sectorRepository = sectorRepository;
-        this.spotRepository = spotRepository;
-        this.pricingService = pricingService;
-        this.spotLocationMatcher = spotLocationMatcher;
-        this.garageResolver = garageResolver;
-        this.parkingMapper = parkingMapper;
-    }
     
     @Transactional
     public void handleEntryEvent(UUID garageId, String vehicleLicensePlate, Instant entryTime, String sectorCode) {
@@ -110,18 +95,39 @@ public class ParkingEventService {
         Sector sector = sectorRepository.findById(session.getSectorId())
                 .orElseThrow(() -> new IllegalStateException("Sector not found: " + session.getSectorId()));
         
-        // Find spots in sector
-        List<ParkingSpot> sectorSpots = spotRepository.findBySectorId(sector.getId());
+        // Calculate tolerance bounds for database query
+        BigDecimal tolerance = BigDecimal.valueOf(0.000001);
+        BigDecimal minLat = latitude.subtract(tolerance);
+        BigDecimal maxLat = latitude.add(tolerance);
+        BigDecimal minLng = longitude.subtract(tolerance);
+        BigDecimal maxLng = longitude.add(tolerance);
         
-        if (sectorSpots.isEmpty()) {
-            logger.warn("No parking spots found in sector {}. Spot assignment skipped.", sector.getSectorCode());
+        // Find matching spots directly from database (filtered by tolerance)
+        List<ParkingSpot> matchingSpots = spotRepository
+                .findBySectorIdAndLatitudeAndLongitudeWithinTolerance(
+                        sector.getId(), minLat, maxLat, minLng, maxLng);
+        
+        if (matchingSpots.isEmpty()) {
+            logger.warn("No parking spot found within tolerance for coordinates ({}, {}) in sector {}. " +
+                       "Spot assignment skipped (graceful degradation).", 
+                       latitude, longitude, sector.getSectorCode());
             // Keep spot_id as null - graceful degradation
             return;
         }
         
+        if (matchingSpots.size() > 1) {
+            logger.error("Multiple parking spots ({}) found within tolerance for coordinates ({}, {}) in sector {}. " +
+                        "Ambiguous match - spot assignment skipped.", 
+                        matchingSpots.size(), latitude, longitude, sector.getSectorCode());
+            throw new com.estapar.parking.exception.AmbiguousSpotMatchException(
+                String.format("Multiple parking spots (%d) found within tolerance for coordinates (%.8f, %.8f). " +
+                             "Ambiguous match requires investigation or stricter tolerance.", 
+                             matchingSpots.size(), latitude, longitude));
+        }
+        
         try {
-            // Match coordinates with tolerance
-            ParkingSpot matchedSpot = spotLocationMatcher.findSpot(sectorSpots, latitude, longitude);
+            // Single matching spot found
+            ParkingSpot matchedSpot = matchingSpots.get(0);
             
             // Check if spot is already occupied (optimistic locking)
             if (Boolean.TRUE.equals(matchedSpot.getIsOccupied())) {
@@ -145,8 +151,8 @@ public class ParkingEventService {
             
             logger.info("Parked event processed: vehicle={}, spot_id={}", vehicleLicensePlate, matchedSpot.getId());
             
-        } catch (SpotNotFoundException | AmbiguousSpotMatchException e) {
-            logger.warn("Spot not found or ambiguous match for vehicle {} at coordinates ({}, {}): {}. " +
+        } catch (AmbiguousSpotMatchException e) {
+            logger.warn("Ambiguous spot match for vehicle {} at coordinates ({}, {}): {}. " +
                        "Session will continue with spot_id=null (graceful degradation).", 
                        vehicleLicensePlate, latitude, longitude, e.getMessage());
             // Keep spot_id as null - graceful degradation, capacity already counted on ENTRY

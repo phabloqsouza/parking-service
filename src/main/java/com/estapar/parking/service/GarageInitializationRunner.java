@@ -1,5 +1,6 @@
 package com.estapar.parking.service;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -13,15 +14,12 @@ import org.springframework.stereotype.Component;
     havingValue = "true",
     matchIfMissing = true  // Enabled by default for development
 )
+@RequiredArgsConstructor
 public class GarageInitializationRunner implements ApplicationRunner {
     
     private static final Logger logger = LoggerFactory.getLogger(GarageInitializationRunner.class);
     
     private final GarageInitializationService initializationService;
-    
-    public GarageInitializationRunner(GarageInitializationService initializationService) {
-        this.initializationService = initializationService;
-    }
     
     @Override
     public void run(ApplicationArguments args) throws Exception {

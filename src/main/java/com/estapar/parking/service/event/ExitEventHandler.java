@@ -3,18 +3,16 @@ package com.estapar.parking.service.event;
 import com.estapar.parking.api.dto.ExitEventDto;
 import com.estapar.parking.api.dto.WebhookEventDto;
 import com.estapar.parking.service.ParkingEventService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class ExitEventHandler implements EventHandler {
     
     private final ParkingEventService parkingEventService;
-    
-    public ExitEventHandler(ParkingEventService parkingEventService) {
-        this.parkingEventService = parkingEventService;
-    }
     
     @Override
     public void handle(UUID garageId, WebhookEventDto event) {

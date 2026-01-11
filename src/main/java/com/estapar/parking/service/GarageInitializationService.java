@@ -5,6 +5,7 @@ import com.estapar.parking.infrastructure.external.GarageSimulatorFeignClient;
 import com.estapar.parking.infrastructure.external.dto.GarageSimulatorResponseDto;
 import com.estapar.parking.infrastructure.persistence.entity.*;
 import com.estapar.parking.infrastructure.persistence.repository.*;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class GarageInitializationService {
     
     private static final Logger logger = LoggerFactory.getLogger(GarageInitializationService.class);
@@ -25,19 +27,6 @@ public class GarageInitializationService {
     private final SectorRepository sectorRepository;
     private final ParkingSpotRepository spotRepository;
     private final ParkingMapper parkingMapper;
-    
-    public GarageInitializationService(
-            GarageSimulatorFeignClient simulatorClient,
-            GarageRepository garageRepository,
-            SectorRepository sectorRepository,
-            ParkingSpotRepository spotRepository,
-            ParkingMapper parkingMapper) {
-        this.simulatorClient = simulatorClient;
-        this.garageRepository = garageRepository;
-        this.sectorRepository = sectorRepository;
-        this.spotRepository = spotRepository;
-        this.parkingMapper = parkingMapper;
-    }
     
     @Transactional
     public void initializeFromSimulator() {

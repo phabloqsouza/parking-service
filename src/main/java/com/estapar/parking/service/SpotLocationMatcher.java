@@ -3,18 +3,16 @@ package com.estapar.parking.service;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSpot;
 import com.estapar.parking.exception.AmbiguousSpotMatchException;
 import com.estapar.parking.exception.SpotNotFoundException;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 public class SpotLocationMatcher {
     
     private final BigDecimal tolerance;
-    
-    public SpotLocationMatcher(BigDecimal tolerance) {
-        this.tolerance = tolerance;
-    }
     
     public ParkingSpot findSpot(List<ParkingSpot> spots, BigDecimal latitude, BigDecimal longitude) {
         List<ParkingSpot> matchingSpots = spots.stream()

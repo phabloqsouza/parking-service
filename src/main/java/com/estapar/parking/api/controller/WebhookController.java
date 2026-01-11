@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -21,15 +22,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/webhook")
 @Tag(name = "Webhook", description = "API for receiving parking events (ENTRY, PARKED, EXIT)")
+@RequiredArgsConstructor
 public class WebhookController {
     
     private static final Logger logger = LoggerFactory.getLogger(WebhookController.class);
     
     private final EventHandlerFactory eventHandlerFactory;
-    
-    public WebhookController(EventHandlerFactory eventHandlerFactory) {
-        this.eventHandlerFactory = eventHandlerFactory;
-    }
     
     @PostMapping
     @Operation(

@@ -3,23 +3,17 @@ package com.estapar.parking.service;
 import com.estapar.parking.config.DecimalConfig;
 import com.estapar.parking.infrastructure.persistence.entity.PricingStrategy;
 import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
+@RequiredArgsConstructor
 public class PricingService {
     
     private final ParkingFeeCalculator feeCalculator;
     private final PricingStrategyResolver strategyResolver;
     private final DecimalConfig decimalConfig;
-    
-    public PricingService(ParkingFeeCalculator feeCalculator, 
-                         PricingStrategyResolver strategyResolver,
-                         DecimalConfig decimalConfig) {
-        this.feeCalculator = feeCalculator;
-        this.strategyResolver = strategyResolver;
-        this.decimalConfig = decimalConfig;
-    }
     
     public BigDecimal calculateOccupancy(Integer occupiedCount, Integer maxCapacity) {
         if (occupiedCount == null || maxCapacity == null || maxCapacity == 0) {

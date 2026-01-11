@@ -34,4 +34,14 @@ public interface ParkingSpotRepository extends JpaRepository<ParkingSpot, UUID> 
             @Param("maxLat") BigDecimal maxLat,
             @Param("minLng") BigDecimal minLng,
             @Param("maxLng") BigDecimal maxLng);
+    
+    @Query("SELECT ps FROM ParkingSpot ps WHERE ps.sectorId = :sectorId " +
+           "AND ps.latitude BETWEEN :minLat AND :maxLat " +
+           "AND ps.longitude BETWEEN :minLng AND :maxLng")
+    List<ParkingSpot> findBySectorIdAndLatitudeAndLongitudeWithinTolerance(
+            @Param("sectorId") UUID sectorId,
+            @Param("minLat") BigDecimal minLat,
+            @Param("maxLat") BigDecimal maxLat,
+            @Param("minLng") BigDecimal minLng,
+            @Param("maxLng") BigDecimal maxLng);
 }

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -24,17 +25,13 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/revenue")
 @Tag(name = "Revenue", description = "API for querying parking revenue by date and sector")
+@RequiredArgsConstructor
 public class RevenueController {
     
     private static final Logger logger = LoggerFactory.getLogger(RevenueController.class);
     
     private final RevenueService revenueService;
     private final ParkingMapper parkingMapper;
-    
-    public RevenueController(RevenueService revenueService, ParkingMapper parkingMapper) {
-        this.revenueService = revenueService;
-        this.parkingMapper = parkingMapper;
-    }
     
     @PostMapping
     @Operation(
