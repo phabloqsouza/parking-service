@@ -30,12 +30,10 @@ public abstract class WebhookEventDto implements ParkingEvent {
     private String eventType;
     
     @NotNull(message = "License plate is required")
-    @Pattern(regexp = "[A-Z]{3}[0-9][A-Z][0-9]{2}|[A-Z]{3}-?[0-9]{4}", 
-             message = "License plate format is invalid (expected format: ABC1234 or ABC-1234)")
+    @Pattern(regexp = "[a-zA-Z0-9]{7}", message = "License plate must be exactly 7 alphanumeric characters")
     @JsonProperty("license_plate")
     private String licensePlate;
     
-    @Pattern(regexp = "^[A-Z]$", message = "Sector must be a single uppercase letter (A-Z)")
     private String sector;
     
     private UUID garageId;

@@ -22,6 +22,5 @@ public class RevenueRequestDto {
     private LocalDate date;
     
     @NotBlank(message = "Sector is required")
-    @Pattern(regexp = "^[A-Z]$", message = "Sector must be a single uppercase letter (A-Z)")
     private String sector;
 }

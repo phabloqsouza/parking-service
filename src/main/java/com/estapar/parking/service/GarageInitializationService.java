@@ -1,5 +1,6 @@
 package com.estapar.parking.service;
 
+import com.estapar.parking.api.mapper.ParkingMapper;
 import com.estapar.parking.infrastructure.external.GarageSimulatorFeignClient;
 import com.estapar.parking.infrastructure.external.dto.GarageSimulatorResponseDto;
 import com.estapar.parking.infrastructure.persistence.entity.*;
@@ -10,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,16 +24,19 @@ public class GarageInitializationService {
     private final GarageRepository garageRepository;
     private final SectorRepository sectorRepository;
     private final ParkingSpotRepository spotRepository;
+    private final ParkingMapper parkingMapper;
     
     public GarageInitializationService(
             GarageSimulatorFeignClient simulatorClient,
             GarageRepository garageRepository,
             SectorRepository sectorRepository,
-            ParkingSpotRepository spotRepository) {
+            ParkingSpotRepository spotRepository,
+            ParkingMapper parkingMapper) {
         this.simulatorClient = simulatorClient;
         this.garageRepository = garageRepository;
         this.sectorRepository = sectorRepository;
         this.spotRepository = spotRepository;
+        this.parkingMapper = parkingMapper;
     }
     
     @Transactional
@@ -140,11 +143,7 @@ public class GarageInitializationService {
         }
         
         // No garage exists - create new garage as default
-        Garage garage = new Garage();
-        garage.setId(UUID.randomUUID());
-        garage.setName("Default Garage");
-        garage.setIsDefault(true);
-        garage.setCreatedAt(Instant.now());
+        Garage garage = parkingMapper.toGarage("Default Garage", true);
         
         garage = garageRepository.save(garage);
         logger.info("Created new default garage: {}", garage.getId());
@@ -157,16 +156,7 @@ public class GarageInitializationService {
         logger.info("Creating {} sectors for garage {}", sectorConfigs.size(), garageId);
         
         return sectorConfigs.stream()
-            .map(config -> {
-                Sector sector = new Sector();
-                sector.setId(UUID.randomUUID());
-                sector.setGarageId(garageId);
-                sector.setSectorCode(config.sector());
-                sector.setBasePrice(config.basePrice());
-                sector.setMaxCapacity(config.maxCapacity() != null ? config.maxCapacity() : 100);
-                sector.setOccupiedCount(0);
-                return sector;
-            })
+            .map(config -> parkingMapper.toSector(garageId, config))
             .toList();
     }
     
@@ -196,13 +186,8 @@ public class GarageInitializationService {
                 );
             
             if (existingSpots.isEmpty()) {
-                // Create new spot
-                ParkingSpot spot = new ParkingSpot();
-                spot.setId(UUID.randomUUID());
-                spot.setSectorId(sectorId);
-                spot.setLatitude(config.lat());
-                spot.setLongitude(config.lng());
-                spot.setIsOccupied(false);
+                // Create new spot using mapper
+                ParkingSpot spot = parkingMapper.toParkingSpot(sectorId, config);
                 spotRepository.save(spot);
                 logger.debug("Created spot: lat={}, lng={} in sector {}", 
                            config.lat(), config.lng(), sectorCode);
