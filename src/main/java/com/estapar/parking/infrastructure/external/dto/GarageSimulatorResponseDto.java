@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record GarageSimulatorResponseDto(
-    @JsonProperty("garage")
     List<SectorConfigDto> garage,
     
     @JsonProperty("spots")

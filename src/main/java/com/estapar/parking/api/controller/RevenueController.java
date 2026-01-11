@@ -2,6 +2,7 @@ package com.estapar.parking.api.controller;
 
 import com.estapar.parking.api.dto.RevenueRequestDto;
 import com.estapar.parking.api.dto.RevenueResponseDto;
+import com.estapar.parking.api.mapper.ParkingMapper;
 import com.estapar.parking.service.RevenueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,7 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -29,9 +29,11 @@ public class RevenueController {
     private static final Logger logger = LoggerFactory.getLogger(RevenueController.class);
     
     private final RevenueService revenueService;
+    private final ParkingMapper parkingMapper;
     
-    public RevenueController(RevenueService revenueService) {
+    public RevenueController(RevenueService revenueService, ParkingMapper parkingMapper) {
         this.revenueService = revenueService;
+        this.parkingMapper = parkingMapper;
     }
     
     @PostMapping
@@ -66,7 +68,7 @@ public class RevenueController {
                     requestDto.getDate(),
                     requestDto.getSector());
             
-            RevenueResponseDto response = new RevenueResponseDto(amount, "BRL", Instant.now());
+            RevenueResponseDto response = parkingMapper.toRevenueResponseDto(amount);
             logger.info("Revenue query completed: correlationId={}, amount={}, sector={}", 
                        correlationId, amount, requestDto.getSector());
             

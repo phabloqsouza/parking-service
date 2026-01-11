@@ -55,7 +55,7 @@ public class ParkingSession {
     
     @Version
     @Column(nullable = false)
-    private Integer version = 0;
+    private Integer version;
     
     @Column(nullable = false)
     private Instant createdAt;

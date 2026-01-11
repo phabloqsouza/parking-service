@@ -53,6 +53,15 @@ parking:
       initial-interval-millis: 2000
       max-interval-millis: 32000
       multiplier: 2.0
+  decimal:
+    currency-scale: 2  # For currency (price) values
+    percentage-scale: 2  # For percentage values
+    coordinate-scale: 8  # For lat/lng coordinates
+    rounding-mode: HALF_UP  # Rounding mode for BigDecimal operations
+  datetime:
+    instant-format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"  # ISO 8601 format for Instant
+    date-format: "yyyy-MM-dd"  # Format for LocalDate
+    timezone: UTC  # Default timezone for API responses
 
 springdoc:
   api-docs:

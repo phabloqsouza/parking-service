@@ -36,9 +36,9 @@ public class ParkingSpot {
     private BigDecimal longitude;
     
     @Column(nullable = false)
-    private Boolean isOccupied = false;
+    private Boolean isOccupied;
     
     @Version
     @Column(nullable = false)
-    private Integer version = 0;
+    private Integer version;
 }

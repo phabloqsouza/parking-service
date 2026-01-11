@@ -1,7 +1,8 @@
 package com.estapar.parking.api.controller;
 
 import com.estapar.parking.api.dto.WebhookEventDto;
-import com.estapar.parking.service.ParkingEventService;
+import com.estapar.parking.service.event.EventHandler;
+import com.estapar.parking.service.event.EventHandlerFactory;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,10 +25,10 @@ public class WebhookController {
     
     private static final Logger logger = LoggerFactory.getLogger(WebhookController.class);
     
-    private final ParkingEventService parkingEventService;
+    private final EventHandlerFactory eventHandlerFactory;
     
-    public WebhookController(ParkingEventService parkingEventService) {
-        this.parkingEventService = parkingEventService;
+    public WebhookController(EventHandlerFactory eventHandlerFactory) {
+        this.eventHandlerFactory = eventHandlerFactory;
     }
     
     @PostMapping
@@ -48,62 +49,18 @@ public class WebhookController {
         
         String correlationId = MDC.get("correlationId");
         logger.info("Received webhook event: correlationId={}, type={}, licensePlate={}, garageId={}", 
-                   correlationId, eventDto.getEvent(), eventDto.getLicensePlate(), garageId);
-        
-        // Resolve garageId - if not provided, will use default garage
-        UUID resolvedGarageId = garageId; // Will be resolved to default in service if null
-        
+                   correlationId, eventDto.getEventType(), eventDto.getLicensePlate(), garageId);
+
         try {
-            switch (eventDto.getEvent().toUpperCase()) {
-                case "ENTRY" -> {
-                    if (eventDto.getEntryTime() == null) {
-                        logger.warn("ENTRY event missing entry_time: correlationId={}", correlationId);
-                        return ResponseEntity.badRequest().build();
-                    }
-                    parkingEventService.handleEntryEvent(
-                            resolvedGarageId,
-                            eventDto.getLicensePlate(),
-                            eventDto.getEntryTime(),
-                            eventDto.getSector() != null ? eventDto.getSector() : "A"); // Default sector "A"
-                    logger.info("ENTRY event processed successfully: correlationId={}, licensePlate={}", 
-                               correlationId, eventDto.getLicensePlate());
-                    return ResponseEntity.ok().build();
-                }
-                case "PARKED" -> {
-                    if (eventDto.getLat() == null || eventDto.getLng() == null) {
-                        logger.warn("PARKED event missing coordinates: correlationId={}", correlationId);
-                        return ResponseEntity.badRequest().build();
-                    }
-                    parkingEventService.handleParkedEvent(
-                            resolvedGarageId,
-                            eventDto.getLicensePlate(),
-                            eventDto.getLat(),
-                            eventDto.getLng());
-                    logger.info("PARKED event processed successfully: correlationId={}, licensePlate={}", 
-                               correlationId, eventDto.getLicensePlate());
-                    return ResponseEntity.ok().build();
-                }
-                case "EXIT" -> {
-                    if (eventDto.getExitTime() == null) {
-                        logger.warn("EXIT event missing exit_time: correlationId={}", correlationId);
-                        return ResponseEntity.badRequest().build();
-                    }
-                    parkingEventService.handleExitEvent(
-                            resolvedGarageId,
-                            eventDto.getLicensePlate(),
-                            eventDto.getExitTime());
-                    logger.info("EXIT event processed successfully: correlationId={}, licensePlate={}", 
-                               correlationId, eventDto.getLicensePlate());
-                    return ResponseEntity.ok().build();
-                }
-                default -> {
-                    logger.warn("Unknown event type: correlationId={}, eventType={}", correlationId, eventDto.getEvent());
-                    return ResponseEntity.badRequest().build();
-                }
-            }
+            EventHandler handler = eventHandlerFactory.getHandler(eventDto);
+            handler.handle(garageId, eventDto);
+            
+            logger.info("Event processed successfully: correlationId={}, eventType={}, licensePlate={}", 
+                       correlationId, eventDto.getEventType(), eventDto.getLicensePlate());
+            return ResponseEntity.ok().build();
         } catch (Exception e) {
             logger.error("Error processing webhook event: correlationId={}, eventType={}, error={}", 
-                        correlationId, eventDto.getEvent(), e.getMessage(), e);
+                        correlationId, eventDto.getEventType(), e.getMessage(), e);
             throw e; // Let GlobalExceptionHandler handle it
         }
     }

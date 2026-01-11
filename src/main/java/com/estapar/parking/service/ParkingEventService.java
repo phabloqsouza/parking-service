@@ -1,5 +1,6 @@
 package com.estapar.parking.service;
 
+import com.estapar.parking.api.mapper.ParkingMapper;
 import com.estapar.parking.exception.*;
 import com.estapar.parking.infrastructure.persistence.entity.*;
 import com.estapar.parking.infrastructure.persistence.repository.*;
@@ -24,19 +25,22 @@ public class ParkingEventService {
     private final PricingService pricingService;
     private final SpotLocationMatcher spotLocationMatcher;
     private final GarageResolver garageResolver;
+    private final ParkingMapper parkingMapper;
     
     public ParkingEventService(ParkingSessionRepository sessionRepository,
                                SectorRepository sectorRepository,
                                ParkingSpotRepository spotRepository,
                                PricingService pricingService,
                                SpotLocationMatcher spotLocationMatcher,
-                               GarageResolver garageResolver) {
+                               GarageResolver garageResolver,
+                               ParkingMapper parkingMapper) {
         this.sessionRepository = sessionRepository;
         this.sectorRepository = sectorRepository;
         this.spotRepository = spotRepository;
         this.pricingService = pricingService;
         this.spotLocationMatcher = spotLocationMatcher;
         this.garageResolver = garageResolver;
+        this.parkingMapper = parkingMapper;
     }
     
     @Transactional
@@ -69,20 +73,16 @@ public class ParkingEventService {
         
         // Reserve capacity (increment occupied count) with optimistic locking
         sector.setOccupiedCount((sector.getOccupiedCount() != null ? sector.getOccupiedCount() : 0) + 1);
-        sector.setVersion(sector.getVersion() != null ? sector.getVersion() + 1 : 1);
         sectorRepository.save(sector);
         
-        // Create parking session
-        ParkingSession session = new ParkingSession();
-        session.setId(UUID.randomUUID());
-        session.setGarageId(garage.getId());
-        session.setVehicleLicensePlate(vehicleLicensePlate);
-        session.setSectorId(sector.getId());
-        session.setEntryTime(entryTime);
-        session.setBasePrice(basePriceWithDynamicPricing);
-        session.setCreatedAt(Instant.now());
-        session.setVersion(0);
-        // spot_id is null initially - will be set on PARKED event
+        // Create parking session using mapper
+        ParkingSession session = parkingMapper.toParkingSession(
+                vehicleLicensePlate,
+                entryTime,
+                garage.getId(),
+                sector.getId(),
+                basePriceWithDynamicPricing
+        );
         
         sessionRepository.save(session);
         logger.info("Entry event processed: vehicle={}, sector={}, basePrice={}", 
@@ -138,11 +138,9 @@ public class ParkingEventService {
             
             // Assign spot with optimistic locking
             matchedSpot.setIsOccupied(true);
-            matchedSpot.setVersion(matchedSpot.getVersion() != null ? matchedSpot.getVersion() + 1 : 1);
             spotRepository.save(matchedSpot);
             
             session.setSpotId(matchedSpot.getId());
-            session.setVersion(session.getVersion() != null ? session.getVersion() + 1 : 1);
             sessionRepository.save(session);
             
             logger.info("Parked event processed: vehicle={}, spot_id={}", vehicleLicensePlate, matchedSpot.getId());
@@ -173,7 +171,6 @@ public class ParkingEventService {
         if (session.getSpotId() != null) {
             spotRepository.findById(session.getSpotId()).ifPresent(spot -> {
                 spot.setIsOccupied(false);
-                spot.setVersion(spot.getVersion() != null ? spot.getVersion() + 1 : 1);
                 spotRepository.save(spot);
             });
         }
@@ -183,13 +180,11 @@ public class ParkingEventService {
                 .orElseThrow(() -> new IllegalStateException("Sector not found: " + session.getSectorId()));
         int currentCount = sector.getOccupiedCount() != null ? sector.getOccupiedCount() : 0;
         sector.setOccupiedCount(Math.max(0, currentCount - 1));
-        sector.setVersion(sector.getVersion() != null ? sector.getVersion() + 1 : 1);
         sectorRepository.save(sector);
         
         // Update session
         session.setExitTime(exitTime);
         session.setFinalPrice(finalPrice);
-        session.setVersion(session.getVersion() != null ? session.getVersion() + 1 : 1);
         sessionRepository.save(session);
         
         logger.info("Exit event processed: vehicle={}, finalPrice={}, duration={} minutes", 

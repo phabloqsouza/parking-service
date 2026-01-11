@@ -51,11 +51,37 @@ public class GarageInitializationService {
             // Get or create default garage
             Garage garage = getOrCreateDefaultGarage();
             
-            // Initialize sectors
-            initializeSectors(garage.getId(), config.garage());
+            // Build complete garage structure with sectors
+            List<Sector> sectors = buildSectors(garage.getId(), config.garage());
             
-            // Initialize spots
-            initializeSpots(garage.getId(), config.spots());
+            // Validate garage structure: at least one sector, each sector has at least one spot
+            validateGarageStructure(sectors, config.spots());
+            
+            // Save all sectors and their spots in one transaction
+            for (Sector sector : sectors) {
+                // Check if sector already exists
+                Optional<Sector> existingSector = sectorRepository.findByGarageIdAndSectorCode(
+                    garage.getId(), sector.getSectorCode());
+                
+                if (existingSector.isPresent()) {
+                    // Update existing sector
+                    Sector existing = existingSector.get();
+                    existing.setBasePrice(sector.getBasePrice());
+                    existing.setMaxCapacity(sector.getMaxCapacity());
+                    sectorRepository.save(existing);
+                    logger.debug("Updated sector: {} for garage {}", sector.getSectorCode(), garage.getId());
+                    
+                    // Update spots for existing sector
+                    updateSpotsForSector(existing.getId(), sector.getSectorCode(), config.spots());
+                } else {
+                    // Save new sector (spots will be saved separately as there's no cascade)
+                    sectorRepository.save(sector);
+                    logger.debug("Created sector: {} for garage {}", sector.getSectorCode(), garage.getId());
+                    
+                    // Save spots for new sector
+                    saveSpotsForSector(sector.getId(), sector.getSectorCode(), config.spots());
+                }
+            }
             
             logger.info("Garage initialization completed successfully. Garage ID: {}", garage.getId());
             
@@ -87,22 +113,12 @@ public class GarageInitializationService {
         return garage;
     }
     
-    private void initializeSectors(UUID garageId, List<GarageSimulatorResponseDto.SectorConfigDto> sectorConfigs) {
-        logger.info("Initializing {} sectors for garage {}", sectorConfigs.size(), garageId);
+    private List<Sector> buildSectors(UUID garageId, 
+                                      List<GarageSimulatorResponseDto.SectorConfigDto> sectorConfigs) {
+        logger.info("Building {} sectors for garage {}", sectorConfigs.size(), garageId);
         
-        for (GarageSimulatorResponseDto.SectorConfigDto config : sectorConfigs) {
-            Optional<Sector> existingSector = sectorRepository.findByGarageIdAndSectorCode(
-                garageId, config.sector());
-            
-            if (existingSector.isPresent()) {
-                // Update existing sector
-                Sector sector = existingSector.get();
-                sector.setBasePrice(config.basePrice());
-                sector.setMaxCapacity(config.maxCapacity() != null ? config.maxCapacity() : 100);
-                sectorRepository.save(sector);
-                logger.debug("Updated sector: {} for garage {}", config.sector(), garageId);
-            } else {
-                // Create new sector
+        return sectorConfigs.stream()
+            .map(config -> {
                 Sector sector = new Sector();
                 sector.setId(UUID.randomUUID());
                 sector.setGarageId(garageId);
@@ -110,38 +126,51 @@ public class GarageInitializationService {
                 sector.setBasePrice(config.basePrice());
                 sector.setMaxCapacity(config.maxCapacity() != null ? config.maxCapacity() : 100);
                 sector.setOccupiedCount(0);
-                sector.setVersion(0);
-                // created_at is handled by database DEFAULT CURRENT_TIMESTAMP
-                sectorRepository.save(sector);
-                logger.debug("Created sector: {} for garage {}", config.sector(), garageId);
-            }
-        }
+                return sector;
+            })
+            .toList();
     }
     
-    private void initializeSpots(UUID garageId, List<GarageSimulatorResponseDto.SpotConfigDto> spotConfigs) {
-        if (spotConfigs == null || spotConfigs.isEmpty()) {
-            logger.warn("No spots provided in simulator configuration");
-            return;
+    private void validateGarageStructure(List<Sector> sectors, List<GarageSimulatorResponseDto.SpotConfigDto> spotConfigs) {
+        if (sectors == null || sectors.isEmpty()) {
+            throw new IllegalStateException("Garage must have at least one sector");
         }
         
-        logger.info("Initializing {} spots for garage {}", spotConfigs.size(), garageId);
+        if (spotConfigs == null || spotConfigs.isEmpty()) {
+            throw new IllegalStateException("Garage must have at least one spot");
+        }
         
-        // Get all sectors for this garage to map sector codes to IDs
-        List<Sector> sectors = sectorRepository.findByGarageId(garageId);
+        // Validate each sector has at least one spot
+        sectors.stream()
+            .filter(sector -> spotConfigs.stream()
+                .noneMatch(spot -> spot.sector().equals(sector.getSectorCode())))
+            .findFirst()
+            .ifPresent(sector -> {
+                throw new IllegalStateException(
+                    String.format("Sector %s must have at least one spot", sector.getSectorCode()));
+            });
+    }
+    
+    private void saveSpotsForSector(UUID sectorId, String sectorCode, List<GarageSimulatorResponseDto.SpotConfigDto> spotConfigs) {
+        // Filter spots for this sector
+        List<GarageSimulatorResponseDto.SpotConfigDto> sectorSpots = spotConfigs.stream()
+            .filter(spot -> spot.sector().equals(sectorCode))
+            .toList();
         
-        for (GarageSimulatorResponseDto.SpotConfigDto config : spotConfigs) {
-            // Find sector by code
-            Sector sector = sectors.stream()
-                .filter(s -> s.getSectorCode().equals(config.sector()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                    "Sector not found for spot: " + config.sector()));
-            
+        // Validation already done in validateGarageStructure, but double-check for safety
+        if (sectorSpots.isEmpty()) {
+            throw new IllegalStateException("Sector " + sectorCode + " must have at least one spot");
+        }
+        
+        logger.info("Saving {} spots for sector {}", sectorSpots.size(), sectorCode);
+        
+        BigDecimal tolerance = BigDecimal.valueOf(0.000001);
+        
+        sectorSpots.forEach(config -> {
             // Check if spot already exists (by coordinates within sector)
-            BigDecimal tolerance = BigDecimal.valueOf(0.000001);
             List<ParkingSpot> existingSpots = spotRepository
                 .findBySectorIdAndLatitudeBetweenAndLongitudeBetween(
-                    sector.getId(),
+                    sectorId,
                     config.lat().subtract(tolerance),
                     config.lat().add(tolerance),
                     config.lng().subtract(tolerance),
@@ -152,15 +181,13 @@ public class GarageInitializationService {
                 // Create new spot
                 ParkingSpot spot = new ParkingSpot();
                 spot.setId(UUID.randomUUID());
-                spot.setSectorId(sector.getId());
+                spot.setSectorId(sectorId);
                 spot.setLatitude(config.lat());
                 spot.setLongitude(config.lng());
                 spot.setIsOccupied(false);
-                spot.setVersion(0);
-                // created_at is handled by database DEFAULT CURRENT_TIMESTAMP
                 spotRepository.save(spot);
                 logger.debug("Created spot: lat={}, lng={} in sector {}", 
-                           config.lat(), config.lng(), config.sector());
+                           config.lat(), config.lng(), sectorCode);
             } else {
                 // Spot already exists, update coordinates if needed
                 ParkingSpot spot = existingSpots.get(0);
@@ -168,8 +195,13 @@ public class GarageInitializationService {
                 spot.setLongitude(config.lng());
                 spotRepository.save(spot);
                 logger.debug("Updated spot: lat={}, lng={} in sector {}", 
-                           config.lat(), config.lng(), config.sector());
+                           config.lat(), config.lng(), sectorCode);
             }
-        }
+        });
+    }
+    
+    private void updateSpotsForSector(UUID sectorId, String sectorCode, List<GarageSimulatorResponseDto.SpotConfigDto> spotConfigs) {
+        // Same logic as saveSpotsForSector but for existing sectors
+        saveSpotsForSector(sectorId, sectorCode, spotConfigs);
     }
 }

@@ -36,11 +36,11 @@ public class Sector {
     private Integer maxCapacity;
     
     @Column(nullable = false)
-    private Integer occupiedCount = 0;
+    private Integer occupiedCount;
     
     @Version
     @Column(nullable = false)
-    private Integer version = 0;
+    private Integer version;
     
     public boolean isFull() {
         return occupiedCount != null && maxCapacity != null && occupiedCount >= maxCapacity;

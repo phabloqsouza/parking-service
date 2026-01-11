@@ -1,7 +1,8 @@
 package com.estapar.parking.service;
 
+import com.estapar.parking.config.DecimalConfig;
+
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -9,6 +10,12 @@ public class ParkingFeeCalculator {
     
     private static final int FREE_MINUTES = 30;
     private static final int MINUTES_PER_HOUR = 60;
+    
+    private final DecimalConfig decimalConfig;
+    
+    public ParkingFeeCalculator(DecimalConfig decimalConfig) {
+        this.decimalConfig = decimalConfig;
+    }
     
     public BigDecimal calculateFee(Instant entryTime, Instant exitTime, BigDecimal basePrice) {
         if (entryTime == null || exitTime == null || basePrice == null) {
@@ -26,16 +33,17 @@ public class ParkingFeeCalculator {
         long chargeableMinutes = Math.max(0, totalMinutes - FREE_MINUTES);
         
         if (chargeableMinutes == 0) {
-            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            return BigDecimal.ZERO.setScale(decimalConfig.getCurrencyScale(), decimalConfig.getRoundingMode());
         }
         
         // Calculate hours (round up)
         BigDecimal chargeableHours = BigDecimal.valueOf(chargeableMinutes)
-                .divide(BigDecimal.valueOf(MINUTES_PER_HOUR), 2, RoundingMode.CEILING);
+                .divide(BigDecimal.valueOf(MINUTES_PER_HOUR), decimalConfig.getCurrencyScale(), 
+                        java.math.RoundingMode.CEILING);
         
         // Calculate final price: hours * base price
         BigDecimal finalPrice = chargeableHours.multiply(basePrice);
         
-        return finalPrice.setScale(2, RoundingMode.HALF_UP);
+        return finalPrice.setScale(decimalConfig.getCurrencyScale(), decimalConfig.getRoundingMode());
     }
 }

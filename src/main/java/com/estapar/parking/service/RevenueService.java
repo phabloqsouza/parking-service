@@ -1,5 +1,6 @@
 package com.estapar.parking.service;
 
+import com.estapar.parking.config.DecimalConfig;
 import com.estapar.parking.infrastructure.persistence.entity.Garage;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
 import com.estapar.parking.infrastructure.persistence.entity.Sector;
@@ -21,13 +22,16 @@ public class RevenueService {
     private final ParkingSessionRepository sessionRepository;
     private final SectorRepository sectorRepository;
     private final GarageResolver garageResolver;
+    private final DecimalConfig decimalConfig;
     
     public RevenueService(ParkingSessionRepository sessionRepository,
                          SectorRepository sectorRepository,
-                         GarageResolver garageResolver) {
+                         GarageResolver garageResolver,
+                         DecimalConfig decimalConfig) {
         this.sessionRepository = sessionRepository;
         this.sectorRepository = sectorRepository;
         this.garageResolver = garageResolver;
+        this.decimalConfig = decimalConfig;
     }
     
     @Transactional(readOnly = true)
@@ -54,6 +58,6 @@ public class RevenueService {
                 .map(ParkingSession::getFinalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         
-        return totalRevenue.setScale(2, java.math.RoundingMode.HALF_UP);
+        return totalRevenue.setScale(decimalConfig.getCurrencyScale(), decimalConfig.getRoundingMode());
     }
 }

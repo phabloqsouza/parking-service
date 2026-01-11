@@ -1,19 +1,23 @@
 package com.estapar.parking.service;
 
+import com.estapar.parking.config.DecimalConfig;
 import com.estapar.parking.infrastructure.persistence.entity.PricingStrategy;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 
 public class PricingService {
     
     private final ParkingFeeCalculator feeCalculator;
     private final PricingStrategyResolver strategyResolver;
+    private final DecimalConfig decimalConfig;
     
-    public PricingService(ParkingFeeCalculator feeCalculator, PricingStrategyResolver strategyResolver) {
+    public PricingService(ParkingFeeCalculator feeCalculator, 
+                         PricingStrategyResolver strategyResolver,
+                         DecimalConfig decimalConfig) {
         this.feeCalculator = feeCalculator;
         this.strategyResolver = strategyResolver;
+        this.decimalConfig = decimalConfig;
     }
     
     public BigDecimal calculateOccupancy(Integer occupiedCount, Integer maxCapacity) {
@@ -23,10 +27,11 @@ public class PricingService {
         
         BigDecimal occupied = BigDecimal.valueOf(occupiedCount);
         BigDecimal max = BigDecimal.valueOf(maxCapacity);
-        BigDecimal percentage = occupied.divide(max, 4, RoundingMode.HALF_UP)
+        // Use 4 decimal places for intermediate calculation, then scale to percentage scale
+        BigDecimal percentage = occupied.divide(max, 4, decimalConfig.getRoundingMode())
                 .multiply(BigDecimal.valueOf(100));
         
-        return percentage.setScale(2, RoundingMode.HALF_UP);
+        return percentage.setScale(decimalConfig.getPercentageScale(), decimalConfig.getRoundingMode());
     }
     
     public BigDecimal calculateBasePriceWithDynamicPricing(BigDecimal basePrice, BigDecimal occupancyPercentage) {
@@ -38,7 +43,7 @@ public class PricingService {
         BigDecimal multiplier = strategy.getMultiplier();
         
         BigDecimal priceWithDynamicPricing = basePrice.multiply(multiplier);
-        return priceWithDynamicPricing.setScale(2, RoundingMode.HALF_UP);
+        return priceWithDynamicPricing.setScale(decimalConfig.getCurrencyScale(), decimalConfig.getRoundingMode());
     }
     
     public BigDecimal calculateFinalPrice(Instant entryTime, Instant exitTime, BigDecimal basePriceWithDynamicPricing) {
