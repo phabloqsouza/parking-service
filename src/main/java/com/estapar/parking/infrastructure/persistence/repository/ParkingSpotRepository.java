@@ -1,13 +1,16 @@
 package com.estapar.parking.infrastructure.persistence.repository;
 
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSpot;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -17,31 +20,11 @@ public interface ParkingSpotRepository extends JpaRepository<ParkingSpot, UUID> 
     
     List<ParkingSpot> findBySectorIdAndIsOccupiedFalse(UUID sectorId);
     
-    @Query("SELECT ps FROM ParkingSpot ps WHERE ps.sectorId = :sectorId " +
-           "AND ps.latitude BETWEEN :minLat AND :maxLat " +
-           "AND ps.longitude BETWEEN :minLng AND :maxLng")
-    List<ParkingSpot> findBySectorIdAndLatitudeBetweenAndLongitudeBetween(
+    @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
+    @Query("SELECT ps FROM ParkingSpot ps WHERE ps.sector.id = :sectorId " +
+           "AND ps.latitude = :latitude AND ps.longitude = :longitude")
+    Optional<ParkingSpot> findBySectorIdAndLatitudeAndLongitude(
             @Param("sectorId") UUID sectorId,
-            @Param("minLat") BigDecimal minLat,
-            @Param("maxLat") BigDecimal maxLat,
-            @Param("minLng") BigDecimal minLng,
-            @Param("maxLng") BigDecimal maxLng);
-    
-    @Query("SELECT ps FROM ParkingSpot ps WHERE ps.latitude BETWEEN :minLat AND :maxLat " +
-           "AND ps.longitude BETWEEN :minLng AND :maxLng")
-    List<ParkingSpot> findByLatitudeBetweenAndLongitudeBetween(
-            @Param("minLat") BigDecimal minLat,
-            @Param("maxLat") BigDecimal maxLat,
-            @Param("minLng") BigDecimal minLng,
-            @Param("maxLng") BigDecimal maxLng);
-    
-    @Query("SELECT ps FROM ParkingSpot ps WHERE ps.sectorId = :sectorId " +
-           "AND ps.latitude BETWEEN :minLat AND :maxLat " +
-           "AND ps.longitude BETWEEN :minLng AND :maxLng")
-    List<ParkingSpot> findBySectorIdAndLatitudeAndLongitudeWithinTolerance(
-            @Param("sectorId") UUID sectorId,
-            @Param("minLat") BigDecimal minLat,
-            @Param("maxLat") BigDecimal maxLat,
-            @Param("minLng") BigDecimal minLng,
-            @Param("maxLng") BigDecimal maxLng);
+            @Param("latitude") BigDecimal latitude,
+            @Param("longitude") BigDecimal longitude);
 }

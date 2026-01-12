@@ -1,8 +1,9 @@
 package com.estapar.parking.api.controller;
 
 import com.estapar.parking.api.dto.WebhookEventDto;
+import com.estapar.parking.infrastructure.persistence.entity.Garage;
+import com.estapar.parking.service.GarageResolver;
 import com.estapar.parking.service.event.EventHandler;
-import com.estapar.parking.service.event.EventHandlerFactory;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,6 +18,7 @@ import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -27,7 +29,8 @@ public class WebhookController {
     
     private static final Logger logger = LoggerFactory.getLogger(WebhookController.class);
     
-    private final EventHandlerFactory eventHandlerFactory;
+    private final List<EventHandler> eventHandlers;
+    private final GarageResolver garageResolver;
     
     @PostMapping
     @Operation(
@@ -49,17 +52,14 @@ public class WebhookController {
         logger.info("Received webhook event: correlationId={}, type={}, licensePlate={}, garageId={}", 
                    correlationId, eventDto.getEventType(), eventDto.getLicensePlate(), garageId);
 
-        try {
-            EventHandler handler = eventHandlerFactory.getHandler(eventDto);
-            handler.handle(garageId, eventDto);
-            
-            logger.info("Event processed successfully: correlationId={}, eventType={}, licensePlate={}", 
-                       correlationId, eventDto.getEventType(), eventDto.getLicensePlate());
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            logger.error("Error processing webhook event: correlationId={}, eventType={}, error={}", 
-                        correlationId, eventDto.getEventType(), e.getMessage(), e);
-            throw e; // Let GlobalExceptionHandler handle it
-        }
+        Garage garage = garageResolver.getGarage(garageId);
+        
+        eventHandlers.stream()
+                .filter(eventHandler -> eventHandler.supports(eventDto))
+                .findFirst().ifPresent(handler -> handler.handle(garage, eventDto));
+
+        logger.info("Event processed successfully: correlationId={}, eventType={}, licensePlate={}", 
+                   correlationId, eventDto.getEventType(), eventDto.getLicensePlate());
+        return ResponseEntity.ok().build();
     }
 }

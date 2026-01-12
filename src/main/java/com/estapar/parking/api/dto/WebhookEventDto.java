@@ -25,9 +25,8 @@ import java.util.UUID;
 public abstract class WebhookEventDto implements ParkingEvent {
     
     @NotNull(message = "Event type is required")
-    @Pattern(regexp = "ENTRY|PARKED|EXIT", message = "Event type must be ENTRY, PARKED, or EXIT")
     @JsonProperty("event_type")
-    private String eventType;
+    private EventType eventType;
     
     @NotNull(message = "License plate is required")
     @Pattern(regexp = "[a-zA-Z0-9]{7}", message = "License plate must be exactly 7 alphanumeric characters")
@@ -37,16 +36,5 @@ public abstract class WebhookEventDto implements ParkingEvent {
     private String sector;
     
     private UUID garageId;
-    
-    public EventType getEventTypeEnum() {
-        if (eventType == null) {
-            return null;
-        }
-        return EventType.valueOf(eventType.toUpperCase());
-    }
-    
-    @Override
-    public EventType getEventType() {
-        return getEventTypeEnum();
-    }
+
 }

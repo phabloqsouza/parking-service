@@ -13,11 +13,10 @@ import java.util.UUID;
 @Entity
 @Table(name = "parking_session",
        indexes = {
-           @Index(name = "idx_garage_vehicle_exit", columnList = "garage_id,vehicle_license_plate,exit_time"),
-           @Index(name = "idx_garage_sector_entry", columnList = "garage_id,sector_id,entry_time"),
-           @Index(name = "idx_sector_exit", columnList = "sector_id,exit_time"),
            @Index(name = "idx_spot_exit", columnList = "spot_id,exit_time"),
-           @Index(name = "idx_garage_entry_time", columnList = "garage_id,entry_time")
+           @Index(name = "idx_spot_vehicle_exit", columnList = "spot_id,vehicle_license_plate,exit_time"),
+           @Index(name = "idx_spot_entry_time", columnList = "spot_id,entry_time"),
+           @Index(name = "idx_sector_exit", columnList = "sector_id,exit_time")
        })
 @Getter
 @Setter
@@ -29,17 +28,16 @@ public class ParkingSession {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     
-    @Column(nullable = false)
-    private UUID garageId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "spot_id")
+    private ParkingSpot spot;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sector_id", nullable = false)
+    private Sector sector;
     
     @Column(nullable = false, length = 20)
     private String vehicleLicensePlate;
-    
-    @Column
-    private UUID spotId;
-    
-    @Column(nullable = false)
-    private UUID sectorId;
     
     @Column(nullable = false)
     private Instant entryTime;
@@ -65,6 +63,6 @@ public class ParkingSession {
     }
     
     public boolean isParked() {
-        return spotId != null;
+        return spot != null;
     }
 }

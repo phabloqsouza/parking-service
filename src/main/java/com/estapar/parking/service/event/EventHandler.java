@@ -1,9 +1,10 @@
 package com.estapar.parking.service.event;
 
 import com.estapar.parking.api.dto.WebhookEventDto;
-
-import java.util.UUID;
+import com.estapar.parking.infrastructure.persistence.entity.Garage;
 
 public interface EventHandler {
-    void handle(UUID garageId, WebhookEventDto event);
+    void handle(Garage garage, WebhookEventDto event);
+
+    boolean supports(WebhookEventDto event);
 }

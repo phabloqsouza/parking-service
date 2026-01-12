@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -20,13 +21,14 @@ public class Garage {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    
-    @Column(nullable = false, length = 100)
-    private String name;
-    
+
     @Column(nullable = false)
     private Boolean isDefault;
     
     @Column(nullable = false)
     private Instant createdAt;
+
+    @OneToMany(mappedBy = "garage", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Sector> sectors;
+
 }

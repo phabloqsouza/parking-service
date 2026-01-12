@@ -12,5 +12,6 @@ public interface GarageRepository extends JpaRepository<Garage, UUID> {
     
     Optional<Garage> findByIsDefaultTrue();
     
-    Optional<Garage> findByName(String name);
+    boolean existsByIsDefaultTrue();
+    
 }

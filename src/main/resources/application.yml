@@ -53,6 +53,8 @@ parking:
       initial-interval-millis: 2000
       max-interval-millis: 32000
       multiplier: 2.0
+  fee:
+    free-minutes: 30  # Number of free minutes before charging starts
   decimal:
     currency-scale: 2  # For currency (price) values
     percentage-scale: 2  # For percentage values
@@ -131,5 +133,5 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{correlationId}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"

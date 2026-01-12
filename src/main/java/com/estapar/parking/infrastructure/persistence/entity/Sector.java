@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -23,10 +24,14 @@ public class Sector {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     
-    @Column(nullable = false)
-    private UUID garageId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id", nullable = false)
+    private Garage garage;
     
-    @Column(nullable = false, length = 10)
+    @OneToMany(mappedBy = "sector", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ParkingSpot> spots;
+    
+    @Column(nullable = false, length = 10, unique = true)
     private String sectorCode;
     
     @Column(nullable = false, precision = 19, scale = 2)
@@ -43,19 +48,7 @@ public class Sector {
     private Integer version;
     
     public boolean isFull() {
-        return occupiedCount != null && maxCapacity != null && occupiedCount >= maxCapacity;
+        return occupiedCount >= maxCapacity;
     }
-    
-    public void incrementOccupiedCount() {
-        if (this.occupiedCount == null) {
-            this.occupiedCount = 0;
-        }
-        this.occupiedCount++;
-    }
-    
-    public void decrementOccupiedCount() {
-        if (this.occupiedCount != null && this.occupiedCount > 0) {
-            this.occupiedCount--;
-        }
-    }
+
 }

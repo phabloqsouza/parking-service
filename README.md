@@ -70,7 +70,7 @@ This microservice follows **Clean Architecture** principles with clear separatio
 - ✅ Vehicle entry/exit management (ENTRY, PARKED, EXIT events)
 - ✅ Dynamic pricing based on occupancy (0-25%: -10%, 25-50%: 0%, 50-75%: +10%, 75-100%: +25%)
 - ✅ Capacity management (100% closure, optimistic locking)
-- ✅ Spot matching by coordinates (GPS tolerance-based)
+- ✅ Spot matching by exact coordinates
 - ✅ Revenue tracking by date and sector
 - ✅ First 30 minutes free, hourly rate with ceiling rounding
 - ✅ Automatic garage initialization from simulator
@@ -236,7 +236,7 @@ Manually trigger garage initialization from simulator (used by Docker entrypoint
 
 ### Parked Rules
 
-- Match spot by coordinates within tolerance (0.000001 degrees ≈ 0.1 meters)
+- Match spot by exact coordinates
 - Handle gracefully if spot not found (keep `spot_id = null`, allow EXIT)
 - Handle duplicate PARKED events idempotently
 - Capacity already counted on ENTRY (not incremented on PARKED)
@@ -559,6 +559,7 @@ src/
 - [ ] Mobile app API
 - [ ] Event sourcing for audit trail
 - [ ] Caching layer (Redis) for frequently accessed data
+- [ ] Coordinate tolerance-based spot matching - Currently requires exact coordinate match. Future: Add configurable tolerance (e.g., 0.000001 degrees ≈ 0.1 meters) to handle GPS drift and coordinate precision variations.
 
 ## License
 

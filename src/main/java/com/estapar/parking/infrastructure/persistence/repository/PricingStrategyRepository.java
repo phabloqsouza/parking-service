@@ -18,4 +18,12 @@ public interface PricingStrategyRepository extends JpaRepository<PricingStrategy
            "AND ps.occupancyMaxPercentage > :occupancyPercentage")
     Optional<PricingStrategy> findActiveStrategyByOccupancyRange(
             @Param("occupancyPercentage") BigDecimal occupancyPercentage);
+    
+    @Query("SELECT ps FROM PricingStrategy ps WHERE ps.garage.id = :garageId " +
+           "AND ps.isActive = true " +
+           "AND ps.occupancyMinPercentage <= :occupancyPercentage " +
+           "AND ps.occupancyMaxPercentage > :occupancyPercentage")
+    Optional<PricingStrategy> findActiveStrategyByGarageAndOccupancyRange(
+            @Param("garageId") UUID garageId,
+            @Param("occupancyPercentage") BigDecimal occupancyPercentage);
 }

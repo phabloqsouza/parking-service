@@ -2,8 +2,7 @@ package com.estapar.parking.api.controller;
 
 import com.estapar.parking.api.dto.RevenueRequestDto;
 import com.estapar.parking.api.dto.RevenueResponseDto;
-import com.estapar.parking.api.mapper.ParkingMapper;
-import com.estapar.parking.service.RevenueService;
+import com.estapar.parking.service.PricingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,7 +18,6 @@ import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 @RestController
@@ -30,8 +28,8 @@ public class RevenueController {
     
     private static final Logger logger = LoggerFactory.getLogger(RevenueController.class);
     
-    private final RevenueService revenueService;
-    private final ParkingMapper parkingMapper;
+    private final PricingService pricingService;
+
     
     @PostMapping
     @Operation(
@@ -56,24 +54,14 @@ public class RevenueController {
         logger.info("Revenue query: correlationId={}, date={}, sector={}, garageId={}", 
                    correlationId, requestDto.getDate(), requestDto.getSector(), garageId);
         
-        // Resolve garageId - if not provided, will use default garage
-        UUID resolvedGarageId = garageId; // Will be resolved to default in service if null
+        RevenueResponseDto response = pricingService.getRevenue(
+                garageId,
+                requestDto.getDate(),
+                requestDto.getSector());
         
-        try {
-            BigDecimal amount = revenueService.getRevenue(
-                    resolvedGarageId,
-                    requestDto.getDate(),
-                    requestDto.getSector());
-            
-            RevenueResponseDto response = parkingMapper.toRevenueResponseDto(amount);
-            logger.info("Revenue query completed: correlationId={}, amount={}, sector={}", 
-                       correlationId, amount, requestDto.getSector());
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("Error querying revenue: correlationId={}, date={}, sector={}, error={}", 
-                        correlationId, requestDto.getDate(), requestDto.getSector(), e.getMessage(), e);
-            throw e; // Let GlobalExceptionHandler handle it
-        }
+        logger.info("Revenue query completed: correlationId={}, amount={}, sector={}",
+                   correlationId, response.getAmount(), requestDto.getSector());
+        
+        return ResponseEntity.ok(response);
     }
 }

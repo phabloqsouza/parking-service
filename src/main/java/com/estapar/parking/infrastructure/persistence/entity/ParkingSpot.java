@@ -26,8 +26,9 @@ public class ParkingSpot {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     
-    @Column(nullable = false)
-    private UUID sectorId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sector_id", nullable = false)
+    private Sector sector;
     
     @Column(nullable = false, precision = 10, scale = 8)
     private BigDecimal latitude;

@@ -6,12 +6,14 @@ import com.estapar.parking.infrastructure.persistence.entity.Garage;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSpot;
 import com.estapar.parking.infrastructure.persistence.entity.Sector;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface ParkingMapper {
@@ -22,32 +24,56 @@ public interface ParkingMapper {
     
     @Mapping(target = "id", expression = "java(java.util.UUID.randomUUID())")
     @Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
-    @Mapping(target = "spotId", ignore = true)
+    @Mapping(target = "spot", ignore = true)
     @Mapping(target = "exitTime", ignore = true)
     @Mapping(target = "finalPrice", ignore = true)
     @Mapping(target = "version", ignore = true)
-    ParkingSession toParkingSession(String vehicleLicensePlate, Instant entryTime, UUID garageId, UUID sectorId, BigDecimal basePrice);
+    ParkingSession toParkingSession(String vehicleLicensePlate, Instant entryTime, Garage garage, Sector sector, BigDecimal basePrice);
     
     @Mapping(target = "id", expression = "java(java.util.UUID.randomUUID())")
     @Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
-    Garage toGarage(String name, Boolean isDefault);
+    @Mapping(target = "isDefault", constant = "true")
+    @Mapping(target = "sectors", ignore = true)
+    Garage toGarage(GarageSimulatorResponseDto config);
     
     @Mapping(target = "id", expression = "java(java.util.UUID.randomUUID())")
+    @Mapping(target = "sectorCode", source = "sector")
+    @Mapping(target = "basePrice", source = "basePrice")
+    @Mapping(target = "maxCapacity", source = "maxCapacity")
     @Mapping(target = "occupiedCount", constant = "0")
     @Mapping(target = "version", ignore = true)
-    Sector toSector(UUID garageId, String sectorCode, BigDecimal basePrice, Integer maxCapacity);
+    @Mapping(target = "spots", ignore = true)
+    @Mapping(target = "garage", ignore = true)
+    Sector toSector(GarageSimulatorResponseDto.SectorConfigDto config);
     
     @Mapping(target = "id", expression = "java(java.util.UUID.randomUUID())")
+    @Mapping(target = "latitude", source = "lat")
+    @Mapping(target = "longitude", source = "lng")
     @Mapping(target = "isOccupied", constant = "false")
     @Mapping(target = "version", ignore = true)
-    ParkingSpot toParkingSpot(UUID sectorId, BigDecimal latitude, BigDecimal longitude);
+    @Mapping(target = "sector", ignore = true)
+    ParkingSpot toParkingSpot(GarageSimulatorResponseDto.SpotConfigDto config);
     
-    default Sector toSector(UUID garageId, GarageSimulatorResponseDto.SectorConfigDto config) {
-        return toSector(garageId, config.sector(), config.basePrice(), 
-                       config.maxCapacity() != null ? config.maxCapacity() : 100);
-    }
-    
-    default ParkingSpot toParkingSpot(UUID sectorId, GarageSimulatorResponseDto.SpotConfigDto config) {
-        return toParkingSpot(sectorId, config.lat(), config.lng());
+    @AfterMapping
+    default void configureGarageRelationships(@MappingTarget Garage garage, GarageSimulatorResponseDto config) {
+        List<Sector> sectors = config.garage().stream()
+            .map(this::toSector)
+            .peek(sector -> sector.setGarage(garage))
+            .peek(sector -> {
+                List<ParkingSpot> spots = config.spots().stream()
+                    .filter(spotConfig -> spotConfig.sector().equals(sector.getSectorCode()))
+                    .map(this::toParkingSpot)
+                    .peek(spot -> spot.setSector(sector))
+                    .toList();
+                
+                if (spots.isEmpty()) {
+                    throw new IllegalStateException("Sector " + sector.getSectorCode() + " must have at least one spot");
+                }
+                
+                sector.setSpots(spots);
+            })
+            .toList();
+        
+        garage.setSectors(sectors);
     }
 }
