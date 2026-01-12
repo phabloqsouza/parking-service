@@ -32,10 +32,12 @@ public class ParkingFeeCalculator {
         if (totalMinutes <= freeMinutes) {
             return bigDecimalUtils.zeroWithCurrencyScale();
         }
+
+        var chargeableMinutes = totalMinutes - freeMinutes;
         
         // Calculate hours (round up)
         BigDecimal chargeableHours = bigDecimalUtils.divideWithCurrencyScale(
-                BigDecimal.valueOf(totalMinutes), BigDecimal.valueOf(MINUTES_PER_HOUR));
+                BigDecimal.valueOf(chargeableMinutes), BigDecimal.valueOf(MINUTES_PER_HOUR));
         
         // Calculate final price: hours * base price
         return bigDecimalUtils.multiplyAndSetCurrencyScale(chargeableHours, basePrice);

@@ -43,12 +43,9 @@ public class GarageInitializationService {
         
         // Save garage once - cascade will save sectors and spots
         garage = garageRepository.save(garage);
-        logger.info("Garage initialization completed successfully. Garage ID: {}, Sectors: {}, Total Spots: {}", 
+        logger.info("Garage initialization completed successfully. Garage ID: {}, Sectors: {}",
                    garage.getId(), 
-                   garage.getSectors() != null ? garage.getSectors().size() : 0,
-                   garage.getSectors() != null ? garage.getSectors().stream()
-                       .mapToInt(s -> s.getSpots() != null ? s.getSpots().size() : 0)
-                       .sum() : 0);
+                   garage.getSectors() != null ? garage.getSectors().size() : 0);
     }
     
 }
