@@ -16,15 +16,7 @@ public class BigDecimalUtils {
         return value.setScale(decimalConfig.getCurrencyScale(), decimalConfig.getRoundingMode());
     }
     
-    public BigDecimal setPercentageScale(BigDecimal value) {
-        return value.setScale(decimalConfig.getPercentageScale(), decimalConfig.getRoundingMode());
-    }
-    
-    public BigDecimal setCoordinateScale(BigDecimal value) {
-        return value.setScale(decimalConfig.getCoordinateScale(), decimalConfig.getRoundingMode());
-    }
-    
-    public BigDecimal divide(BigDecimal dividend, BigDecimal divisor, int scale) {
+    private BigDecimal divide(BigDecimal dividend, BigDecimal divisor, int scale) {
         return dividend.divide(divisor, scale, decimalConfig.getRoundingMode());
     }
     public BigDecimal calculatePercentage(BigDecimal dividend, BigDecimal divisor) {

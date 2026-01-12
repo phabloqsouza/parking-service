@@ -25,27 +25,6 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
             @Param("garageId") UUID garageId, 
             @Param("vehicleLicensePlate") String vehicleLicensePlate);
     
-    @Query("SELECT ps FROM ParkingSession ps WHERE ps.sector.id = :sectorId " +
-           "AND ps.exitTime IS NULL")
-    List<ParkingSession> findBySectorIdAndExitTimeIsNull(@Param("sectorId") UUID sectorId);
-    
-    @Query("SELECT ps FROM ParkingSession ps WHERE ps.spot.id = :spotId " +
-           "AND ps.exitTime IS NULL")
-    Optional<ParkingSession> findBySpotIdAndExitTimeIsNull(@Param("spotId") UUID spotId);
-    
-    @Query(value = "SELECT ps.* FROM parking_session ps " +
-           "INNER JOIN parking_spot pspot ON ps.spot_id = pspot.id " +
-           "INNER JOIN sector s ON pspot.sector_id = s.id " +
-           "WHERE s.garage_id = :garageId " +
-           "AND s.id = :sectorId " +
-           "AND DATE(ps.entry_time) = DATE(:date) " +
-           "AND ps.exit_time IS NOT NULL " +
-           "AND ps.final_price IS NOT NULL", nativeQuery = true)
-    List<ParkingSession> findCompletedSessionsByGarageAndSectorAndDate(
-            @Param("garageId") UUID garageId,
-            @Param("sectorId") UUID sectorId,
-            @Param("date") Instant date);
-    
     @Query(value = "SELECT COALESCE(SUM(ps.final_price), 0) FROM parking_session ps " +
            "INNER JOIN parking_spot pspot ON ps.spot_id = pspot.id " +
            "INNER JOIN sector s ON pspot.sector_id = s.id " +
@@ -58,11 +37,4 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSession, 
             @Param("garageId") UUID garageId,
             @Param("sectorId") UUID sectorId,
             @Param("date") Instant date);
-    
-    @Query("SELECT ps FROM ParkingSession ps WHERE ps.sector.garage.id = :garageId " +
-           "AND ps.entryTime BETWEEN :startDate AND :endDate")
-    List<ParkingSession> findByGarageIdAndEntryTimeBetween(
-            @Param("garageId") UUID garageId,
-            @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate);
 }

@@ -4,7 +4,6 @@ import com.estapar.parking.api.dto.EntryEventDto;
 import com.estapar.parking.api.dto.EventType;
 import com.estapar.parking.api.dto.WebhookEventDto;
 import com.estapar.parking.api.mapper.ParkingMapper;
-import com.estapar.parking.exception.SectorFullException;
 import com.estapar.parking.infrastructure.persistence.entity.Garage;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
 import com.estapar.parking.infrastructure.persistence.entity.Sector;
@@ -23,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -72,7 +70,7 @@ public class EntryEventHandler implements EventHandler {
 
     public void validate(Garage garage, Sector sector, EntryEventDto entryEvent) {
         if (sector.isFull()) {
-            throw new SectorFullException(
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
                 String.format("Sector %s is full (capacity: %d/%d)",
                              entryEvent.getSector(), sector.getOccupiedCount(), sector.getMaxCapacity()));
         }

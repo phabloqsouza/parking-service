@@ -13,12 +13,6 @@ import java.util.UUID;
 @Repository
 public interface PricingStrategyRepository extends JpaRepository<PricingStrategy, UUID> {
     
-    @Query("SELECT ps FROM PricingStrategy ps WHERE ps.isActive = true " +
-           "AND ps.occupancyMinPercentage <= :occupancyPercentage " +
-           "AND ps.occupancyMaxPercentage > :occupancyPercentage")
-    Optional<PricingStrategy> findActiveStrategyByOccupancyRange(
-            @Param("occupancyPercentage") BigDecimal occupancyPercentage);
-    
     @Query("SELECT ps FROM PricingStrategy ps WHERE ps.garage.id = :garageId " +
            "AND ps.isActive = true " +
            "AND ps.occupancyMinPercentage <= :occupancyPercentage " +

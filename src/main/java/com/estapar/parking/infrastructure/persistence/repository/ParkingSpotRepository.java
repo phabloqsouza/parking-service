@@ -16,10 +16,6 @@ import java.util.UUID;
 @Repository
 public interface ParkingSpotRepository extends JpaRepository<ParkingSpot, UUID> {
     
-    List<ParkingSpot> findBySectorId(UUID sectorId);
-    
-    List<ParkingSpot> findBySectorIdAndIsOccupiedFalse(UUID sectorId);
-    
     @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
     @Query("SELECT ps FROM ParkingSpot ps WHERE ps.sector.id = :sectorId " +
            "AND ps.latitude = :latitude AND ps.longitude = :longitude")

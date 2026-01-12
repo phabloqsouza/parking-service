@@ -3,8 +3,6 @@ package com.estapar.parking.service.event;
 import com.estapar.parking.api.dto.EventType;
 import com.estapar.parking.api.dto.ParkedEventDto;
 import com.estapar.parking.api.dto.WebhookEventDto;
-import com.estapar.parking.exception.ParkingSessionNotFoundException;
-import com.estapar.parking.exception.SpotAlreadyOccupiedException;
 import com.estapar.parking.infrastructure.persistence.entity.Garage;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSpot;
@@ -14,9 +12,11 @@ import com.estapar.parking.service.ParkingSessionService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -88,15 +88,8 @@ public class ParkedEventHandler implements EventHandler {
         
         // Check if spot is already occupied (optimistic locking)
         if (matchedSpot.getIsOccupied()) {
-            throw new SpotAlreadyOccupiedException(
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
                 String.format("Spot %s is already occupied", matchedSpot.getId()));
-        }
-
-        // Validate spot belongs to same sector (redundant but defensive)
-        if (!matchedSpot.getSector().getId().equals(session.getSector().getId())) {
-            throw new IllegalStateException(
-                String.format("Matched spot %s does not belong to session sector %s",
-                             matchedSpot.getId(), session.getSector().getId()));
         }
 
         return optionalSpot;

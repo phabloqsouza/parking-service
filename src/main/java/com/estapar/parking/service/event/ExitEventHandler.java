@@ -3,14 +3,12 @@ package com.estapar.parking.service.event;
 import com.estapar.parking.api.dto.EventType;
 import com.estapar.parking.api.dto.ExitEventDto;
 import com.estapar.parking.api.dto.WebhookEventDto;
-import com.estapar.parking.exception.ParkingSessionNotFoundException;
 import com.estapar.parking.infrastructure.persistence.entity.Garage;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSpot;
 import com.estapar.parking.infrastructure.persistence.entity.Sector;
 import com.estapar.parking.infrastructure.persistence.repository.ParkingSessionRepository;
 import com.estapar.parking.infrastructure.persistence.repository.ParkingSpotRepository;
-import com.estapar.parking.infrastructure.persistence.repository.SectorRepository;
 import com.estapar.parking.service.ParkingSessionService;
 import com.estapar.parking.service.PricingService;
 import com.estapar.parking.service.SectorCapacityService;
@@ -31,7 +29,6 @@ public class ExitEventHandler implements EventHandler {
     private static final Logger logger = LoggerFactory.getLogger(ExitEventHandler.class);
     
     private final ParkingSessionRepository sessionRepository;
-    private final SectorRepository sectorRepository;
     private final ParkingSpotRepository spotRepository;
     private final PricingService pricingService;
     private final SectorCapacityService sectorCapacityService;

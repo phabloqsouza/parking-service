@@ -1,6 +1,5 @@
 package com.estapar.parking.api.exception;
 
-import com.estapar.parking.exception.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,6 +13,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 import org.slf4j.MDC;
 
 import java.time.Instant;
@@ -25,49 +25,26 @@ public class GlobalExceptionHandler {
     
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     
-    @ExceptionHandler(SectorFullException.class)
-    public ResponseEntity<ErrorResponse> handleSectorFullException(SectorFullException ex) {
-        String correlationId = MDC.get("correlationId");
-        logger.warn("Sector full exception: correlationId={}, message={}", correlationId, ex.getMessage());
-        ErrorResponse error = new ErrorResponse("SECTOR_FULL", ex.getMessage(), Instant.now());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    private String getCorrelationId() {
+        return MDC.get("correlationId");
     }
     
-    @ExceptionHandler(SpotNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleSpotNotFoundException(SpotNotFoundException ex) {
-        String correlationId = MDC.get("correlationId");
-        logger.warn("Spot not found exception: correlationId={}, message={}", correlationId, ex.getMessage());
-        ErrorResponse error = new ErrorResponse("SPOT_NOT_FOUND", ex.getMessage(), Instant.now());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-    }
-    
-    @ExceptionHandler(AmbiguousSpotMatchException.class)
-    public ResponseEntity<ErrorResponse> handleAmbiguousSpotMatchException(AmbiguousSpotMatchException ex) {
-        String correlationId = MDC.get("correlationId");
-        logger.error("Ambiguous spot match exception: correlationId={}, message={}", correlationId, ex.getMessage());
-        ErrorResponse error = new ErrorResponse("AMBIGUOUS_SPOT_MATCH", ex.getMessage(), Instant.now());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
-    }
-    
-    @ExceptionHandler(SpotAlreadyOccupiedException.class)
-    public ResponseEntity<ErrorResponse> handleSpotAlreadyOccupiedException(SpotAlreadyOccupiedException ex) {
-        String correlationId = MDC.get("correlationId");
-        logger.warn("Spot already occupied exception: correlationId={}, message={}", correlationId, ex.getMessage());
-        ErrorResponse error = new ErrorResponse("SPOT_ALREADY_OCCUPIED", ex.getMessage(), Instant.now());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
-    }
-    
-    @ExceptionHandler(ParkingSessionNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleParkingSessionNotFoundException(ParkingSessionNotFoundException ex) {
-        String correlationId = MDC.get("correlationId");
-        logger.warn("Parking session not found exception: correlationId={}, message={}", correlationId, ex.getMessage());
-        ErrorResponse error = new ErrorResponse("PARKING_SESSION_NOT_FOUND", ex.getMessage(), Instant.now());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex) {
+        String correlationId = getCorrelationId();
+        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
+        if (status == null) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        
+        logger.warn("Response status exception: correlationId={}, status={}, message={}", correlationId, status, ex.getReason());
+        ErrorResponse error = new ErrorResponse("ERROR", ex.getReason(), Instant.now());
+        return ResponseEntity.status(status).body(error);
     }
     
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLockingFailureException(OptimisticLockingFailureException ex) {
-        String correlationId = MDC.get("correlationId");
+        String correlationId = getCorrelationId();
         logger.warn("Optimistic locking failure: correlationId={}, message={}", correlationId, ex.getMessage());
         ErrorResponse error = new ErrorResponse(
                 "CONCURRENT_MODIFICATION",
@@ -78,7 +55,7 @@ public class GlobalExceptionHandler {
     
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        String correlationId = MDC.get("correlationId");
+        String correlationId = getCorrelationId();
         logger.warn("Validation exception: correlationId={}, errors={}", correlationId, ex.getBindingResult().getAllErrors());
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
@@ -91,7 +68,7 @@ public class GlobalExceptionHandler {
     
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        String correlationId = MDC.get("correlationId");
+        String correlationId = getCorrelationId();
         logger.warn("Illegal argument exception: correlationId={}, message={}", correlationId, ex.getMessage());
         ErrorResponse error = new ErrorResponse("INVALID_ARGUMENT", ex.getMessage(), Instant.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -99,7 +76,7 @@ public class GlobalExceptionHandler {
     
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
-        String correlationId = MDC.get("correlationId");
+        String correlationId = getCorrelationId();
         logger.error("Illegal state exception: correlationId={}, message={}", correlationId, ex.getMessage());
         ErrorResponse error = new ErrorResponse("INVALID_STATE", ex.getMessage(), Instant.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -107,7 +84,7 @@ public class GlobalExceptionHandler {
     
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        String correlationId = MDC.get("correlationId");
+        String correlationId = getCorrelationId();
         logger.error("Unexpected exception: correlationId={}, error={}", correlationId, ex.getMessage(), ex);
         ErrorResponse error = new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred", Instant.now());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
@@ -127,7 +104,7 @@ public class GlobalExceptionHandler {
             this.code = code;
             this.message = message;
             this.timestamp = timestamp;
-            this.correlationId = MDC.get("correlationId"); // May be null if MDC not set
+            this.correlationId = MDC.get("correlationId");
         }
     }
 }
