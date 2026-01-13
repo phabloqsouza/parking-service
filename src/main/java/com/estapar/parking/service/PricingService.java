@@ -3,6 +3,7 @@ package com.estapar.parking.service;
 import com.estapar.parking.api.dto.RevenueResponseDto;
 import com.estapar.parking.api.mapper.ParkingMapper;
 import com.estapar.parking.infrastructure.persistence.entity.Garage;
+import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
 import com.estapar.parking.infrastructure.persistence.entity.Sector;
 import com.estapar.parking.infrastructure.persistence.repository.ParkingSessionRepository;
 import com.estapar.parking.infrastructure.persistence.repository.SectorRepository;
@@ -35,20 +36,23 @@ public class PricingService {
     private final GarageResolver garageResolver;
     private final ParkingMapper parkingMapper;
 
-    public BigDecimal applyDynamicPricing(Sector sector) {
-        BigDecimal occupied = valueOf(sector.getOccupiedCount());
-        BigDecimal max = valueOf(sector.getMaxCapacity());
+    public BigDecimal applyDynamicPricing(Garage garage, Sector sector) {
+        long availableCapacity = sectorRepository.calcAvailableCapacity(garage.getId());
+        long occupied = garage.getMaxCapacity() - availableCapacity;
+        
+        BigDecimal occupiedBigDecimal = valueOf(occupied);
+        BigDecimal max = valueOf(garage.getMaxCapacity());
         // Use 4 decimal places for intermediate calculation, then scale to percentage scale
-        BigDecimal occupancyPercentage = bigDecimalUtils.calculatePercentage(occupied, max);
+        BigDecimal occupancyPercentage = bigDecimalUtils.calculatePercentage(occupiedBigDecimal, max);
 
-        // Apply pricing strategy based on occupancy
+        // Apply pricing strategy based on garage occupancy
         BigDecimal multiplier = strategyResolver.findStrategy(occupancyPercentage).getMultiplier();
 
         return bigDecimalUtils.multiplyAndSetCurrencyScale(sector.getBasePrice(), multiplier);
     }
 
-    public BigDecimal calculateFee(Instant entryTime, Instant exitTime, BigDecimal basePriceWithDynamicPricing) {
-        return feeCalculator.calculateFee(entryTime, exitTime, basePriceWithDynamicPricing);
+    public BigDecimal calculateFee(ParkingSession session) {
+        return feeCalculator.calculateFee(session.getEntryTime(), session.getExitTime(), session.getBasePrice());
     }
 
     @Transactional(readOnly = true)
