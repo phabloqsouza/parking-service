@@ -41,27 +41,6 @@ public class EntryEventHandler extends BaseEventHandler {
             throw new IllegalArgumentException("Event must be an EntryEventDto");
         }
 
-        validate(garage, entryEvent);
-
-        long availableCapacity = sectorRepository.calcAvailableCapacity(garage.getId());
-        
-        ParkingSession session = parkingMapper.toParkingSession(
-                entryEvent.getLicensePlate(),
-                entryEvent.getEntryTime(),
-                garage
-        );
-        session.setAvailableCapacityAtEntry(availableCapacity);
-        sessionRepository.save(session);
-
-        logger.info("Entry event processed: vehicle={}", entryEvent.getLicensePlate());
-    }
-
-    @Override
-    public boolean supports(WebhookEventDto event) {
-        return ENTRY.equals(event.getEventType());
-    }
-
-    public void validate(Garage garage, EntryEventDto entryEvent) {
         if (sectorRepository.calcAvailableCapacity(garage.getId()) <= 0) {
             throw new ResponseStatusException(CONFLICT, GARAGE_FULL);
         }
@@ -70,5 +49,19 @@ public class EntryEventHandler extends BaseEventHandler {
             throw new ResponseStatusException(CONFLICT,
                     String.format(VEHICLE_ALREADY_HAS_ACTIVE_SESSION, entryEvent.getLicensePlate()));
         }
+
+        ParkingSession session = parkingMapper.toParkingSession(
+                entryEvent.getLicensePlate(),
+                entryEvent.getEntryTime(),
+                garage
+        );
+        sessionRepository.save(session);
+
+        logger.info("Entry event processed: vehicle={}", entryEvent.getLicensePlate());
+    }
+
+    @Override
+    public boolean supports(WebhookEventDto event) {
+        return ENTRY.equals(event.getEventType());
     }
 }

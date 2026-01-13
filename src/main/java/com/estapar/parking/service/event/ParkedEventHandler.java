@@ -60,10 +60,7 @@ public class ParkedEventHandler extends BaseEventHandler {
             spot -> {
                 Sector sector = spot.getSector();
                 parkingSpotService.assignSpot(session, spot);
-                BigDecimal basePrice = pricingService.applyDynamicPricing(
-                    sector, 
-                    session.getAvailableCapacityAtEntry(), 
-                    garage.getMaxCapacity());
+                BigDecimal basePrice = pricingService.applyDynamicPricing(sector);
                 sectorCapacityService.incrementCapacity(sector);
                 session.setBasePrice(basePrice);
                 sessionRepository.save(session);

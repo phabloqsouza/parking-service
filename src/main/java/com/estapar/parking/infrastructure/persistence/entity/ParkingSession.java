@@ -55,9 +55,6 @@ public class ParkingSession {
     @Column(precision = 19, scale = 2)
     private BigDecimal finalPrice;
     
-    @Column
-    private Long availableCapacityAtEntry;
-    
     @Version
     @Column(nullable = false)
     private Integer version;
