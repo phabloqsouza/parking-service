@@ -9,7 +9,7 @@
 5. **Transaction Management**: Proper use of `@Transactional` annotations
 6. **Optimistic Locking**: Implemented for concurrency control
 7. **Environment Variables**: Configuration externalized (12-factor app principles)
-8. **Testing**: Component tests with Cucumber BDD, unit tests with JUnit/Mockito
+8. **Testing**: Unit tests with JUnit/Mockito
 9. **Database Migrations**: Flyway for version control
 10. **Docker Support**: Complete containerization setup
 
@@ -118,9 +118,9 @@ management:
 **Recommendation**: Add comprehensive unit tests with >80% coverage.
 
 ### 10. Missing Integration Tests
-**Issue**: No integration tests with Testcontainers (despite dependency being present).
+**Issue**: No integration tests present.
 
-**Recommendation**: Create integration tests for:
+**Recommendation**: Consider adding integration tests for:
 - Repository layer with real database
 - End-to-end API tests
 - Optimistic locking scenarios

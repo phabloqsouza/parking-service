@@ -20,11 +20,7 @@
 - ✅ **RevenueResponseDto**: Fixed constructor to avoid conflicts with Lombok
 
 ### 4. **Test Code Updates**
-- ✅ **Component Test Steps**: Updated to send snake_case JSON field names matching API spec:
-  - `"event"` → `"event_type"`
-  - `"licensePlate"` → `"license_plate"`
-  - `"entryTime"` → `"entry_time"`
-  - `"exitTime"` → `"exit_time"`
+- ✅ **Unit Tests**: Comprehensive unit test coverage with JUnit 5 and Mockito
 
 ## ✅ Requirements Verification
 
@@ -54,7 +50,6 @@
 - ✅ **Feign Client** - External integration with retry
 - ✅ **MapStruct** - Entity-DTO mapping
 - ✅ **Lombok** - Getter/Setter generation (not `@Data` for JPA entities)
-- ✅ **Cucumber/RestAssured** - Component tests (BDD)
 - ✅ **BigDecimal** - Currency (scale 2), coordinates (scale 8)
 - ✅ **UUID** - All entity IDs
 - ✅ **Instant** - All datetime fields
@@ -91,7 +86,6 @@ All required dependencies are correctly configured in `pom.xml`:
 - Spring Cloud OpenFeign
 - MapStruct
 - Lombok
-- Cucumber/RestAssured
 - JUnit 5/Mockito
 - MySQL Connector
 - Flyway

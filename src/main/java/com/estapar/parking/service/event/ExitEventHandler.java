@@ -32,7 +32,9 @@ public class ExitEventHandler extends BaseEventHandler {
     
     @Override
     public void handle(Garage garage, WebhookEventDto event) {
-        ExitEventDto exitEvent = castEvent(event, ExitEventDto.class);
+        if (!(event instanceof ExitEventDto exitEvent)) {
+            throw new IllegalArgumentException("Event must be an ExitEventDto");
+        }
         
         String vehicleLicensePlate = exitEvent.getLicensePlate();
         Instant exitTime = exitEvent.getExitTime();

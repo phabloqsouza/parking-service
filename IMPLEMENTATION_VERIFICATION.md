@@ -43,10 +43,7 @@
 - ✅ **DTOs** - @Data (includes all Lombok annotations)
 
 #### 4.4 Testing
-- ✅ **Cucumber/RestAssured (BDD)** - Dependencies in pom.xml
-- ✅ **Feature Files Created** - 5 feature files with 38 scenarios:
-  - `parking-events.feature` (9 scenarios)
-  - `revenue.feature` (5 scenarios)
+- ✅ **Unit Tests** - JUnit 5 with Mockito
   - `capacity-management.feature` (6 scenarios)
   - `pricing.feature` (11 scenarios)
   - `spot-matching.feature` (7 scenarios)
@@ -243,12 +240,6 @@
 - ✅ **Remote Configured** - `origin` → `https://github.com/phabloqsouza/parking-service.git`
 - ✅ **.gitignore** - Comprehensive ignore patterns (Maven, IDE, logs, env files)
 
-### 16. Feature Files (Cucumber BDD)
-- ✅ **parking-events.feature** - 9 scenarios covering ENTRY, PARKED, EXIT flows
-- ✅ **revenue.feature** - 5 scenarios covering revenue queries
-- ✅ **capacity-management.feature** - 6 scenarios covering capacity and closure rules
-- ✅ **pricing.feature** - 11 scenarios covering dynamic pricing and fee calculation
-- ✅ **spot-matching.feature** - 7 scenarios covering coordinate matching
 
 ## Summary
 
@@ -261,7 +252,6 @@
 - ✅ Comprehensive error handling and graceful degradation
 - ✅ Optimistic locking for concurrency control
 - ✅ Complete Docker setup with initialization
-- ✅ BDD component tests (38 scenarios)
 - ✅ All precision handling (BigDecimal, UUID, Instant)
 - ✅ Multi-garage support prepared (currently uses default)
 

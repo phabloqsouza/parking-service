@@ -37,7 +37,9 @@ public class EntryEventHandler extends BaseEventHandler {
     
     @Override
     public void handle(Garage garage, WebhookEventDto event) {
-        EntryEventDto entryEvent = castEvent(event, EntryEventDto.class);
+        if (!(event instanceof EntryEventDto entryEvent)) {
+            throw new IllegalArgumentException("Event must be an EntryEventDto");
+        }
 
         validate(garage, entryEvent);
 

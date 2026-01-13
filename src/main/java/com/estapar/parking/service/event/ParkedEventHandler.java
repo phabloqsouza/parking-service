@@ -42,7 +42,9 @@ public class ParkedEventHandler extends BaseEventHandler {
     
     @Override
     public void handle(Garage garage, WebhookEventDto event) {
-        ParkedEventDto parkedEvent = castEvent(event, ParkedEventDto.class);
+        if (!(event instanceof ParkedEventDto parkedEvent)) {
+            throw new IllegalArgumentException("Event must be a ParkedEventDto");
+        }
         
         // Find active session
         ParkingSession session = parkingSessionService.findActiveSession(garage, parkedEvent.getLicensePlate());
@@ -54,26 +56,21 @@ public class ParkedEventHandler extends BaseEventHandler {
             return;
         }
         
-        Optional<ParkingSpot> optionalSpot = findSpot(garage, parkedEvent);
-
-        if (optionalSpot.isEmpty()) {
-            return;
-        }
-
-        ParkingSpot spot = optionalSpot.get();
-        Sector sector = spot.getSector();
-
-        parkingSpotService.assignSpot(session, spot);
-        
-        BigDecimal basePrice = pricingService.applyDynamicPricing(sector);
-        sectorCapacityService.incrementCapacity(sector);
-        
-        session.setBasePrice(basePrice);
-        sessionRepository.save(session);
-
-        logger.info("Parked event processed: vehicle={}, spot_id={}, sector={}, basePrice={}", 
-                   parkedEvent.getLicensePlate(), spot.getId(), sector.getSectorCode(), basePrice);
-
+        findSpot(garage, parkedEvent).ifPresentOrElse(
+            spot -> {
+                Sector sector = spot.getSector();
+                parkingSpotService.assignSpot(session, spot);
+                BigDecimal basePrice = pricingService.applyDynamicPricing(sector);
+                sectorCapacityService.incrementCapacity(sector);
+                session.setBasePrice(basePrice);
+                sessionRepository.save(session);
+                logger.info("Parked event processed: vehicle={}, spot_id={}, sector={}, basePrice={}", 
+                           parkedEvent.getLicensePlate(), spot.getId(), sector.getSectorCode(), basePrice);
+            },
+            () -> {
+                // Already logged in findSpot, just return
+            }
+        );
     }
 
     @Override
@@ -82,27 +79,23 @@ public class ParkedEventHandler extends BaseEventHandler {
     }
     
     private Optional<ParkingSpot> findSpot(Garage garage, ParkedEventDto parkedEvent) {
-        Optional<ParkingSpot> optionalSpot = spotRepository
+        return spotRepository
                 .findByGarageIdAndLatitudeAndLongitude(
                         garage.getId(), 
                         parkedEvent.getLat(), 
-                        parkedEvent.getLng());
-        
-        if (optionalSpot.isEmpty()) {
-            logger.warn("No parking spot found for exact coordinates ({}, {}) in garage {}. " +
-                       "Spot assignment skipped (graceful degradation).", 
-                       parkedEvent.getLat(), parkedEvent.getLng(), garage.getId());
-            return Optional.empty();
-        }
-        
-        ParkingSpot matchedSpot = optionalSpot.get();
-        
-        // Check if spot is already occupied (optimistic locking)
-        if (matchedSpot.getIsOccupied()) {
-            throw new ResponseStatusException(CONFLICT,
-                String.format(SPOT_ALREADY_OCCUPIED, matchedSpot.getId()));
-        }
-
-        return optionalSpot;
+                        parkedEvent.getLng())
+                .map(spot -> {
+                    if (spot.getIsOccupied()) {
+                        throw new ResponseStatusException(CONFLICT,
+                            String.format(SPOT_ALREADY_OCCUPIED, spot.getId()));
+                    }
+                    return spot;
+                })
+                .or(() -> {
+                    logger.warn("No parking spot found for exact coordinates ({}, {}) in garage {}. " +
+                               "Spot assignment skipped (graceful degradation).", 
+                               parkedEvent.getLat(), parkedEvent.getLng(), garage.getId());
+                    return Optional.empty();
+                });
     }
 }
