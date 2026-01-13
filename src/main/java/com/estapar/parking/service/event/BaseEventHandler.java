@@ -7,6 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 public abstract class BaseEventHandler implements EventHandler {
     
     @Override
-    @Transactional(isolation = Isolation.SERIALIZABLE)
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public abstract void handle(com.estapar.parking.infrastructure.persistence.entity.Garage garage, WebhookEventDto event);
 }

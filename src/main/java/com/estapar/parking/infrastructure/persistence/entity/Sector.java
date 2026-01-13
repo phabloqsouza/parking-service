@@ -46,9 +46,5 @@ public class Sector {
     @Version
     @Column(nullable = false)
     private Integer version;
-    
-    public boolean isFull() {
-        return occupiedCount >= maxCapacity;
-    }
 
 }

@@ -6,6 +6,7 @@ import com.estapar.parking.infrastructure.persistence.entity.Sector;
 import com.estapar.parking.infrastructure.persistence.repository.ParkingSpotRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -15,7 +16,7 @@ public class ParkingSpotService {
     private final ParkingSpotRepository spotRepository;
     private final SectorCapacityService sectorCapacityService;
     
-    @Transactional
+    @Transactional(propagation = Propagation.MANDATORY)
     public void assignSpot(ParkingSession session, ParkingSpot spot) {
         Sector sector = spot.getSector();
         
@@ -26,7 +27,7 @@ public class ParkingSpotService {
         session.setSector(sector);
     }
     
-    @Transactional
+    @Transactional(propagation = Propagation.MANDATORY)
     public void freeSpot(ParkingSession session) {
         if (session.getSpot() == null) {
             return;

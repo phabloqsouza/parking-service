@@ -29,7 +29,7 @@ public interface ParkingMapper {
     @Mapping(target = "exitTime", ignore = true)
     @Mapping(target = "finalPrice", ignore = true)
     @Mapping(target = "version", ignore = true)
-    ParkingSession toParkingSession(String vehicleLicensePlate, Instant entryTime, Garage garage, BigDecimal basePrice);
+    ParkingSession toParkingSession(String vehicleLicensePlate, Instant entryTime, Garage garage);
     
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")

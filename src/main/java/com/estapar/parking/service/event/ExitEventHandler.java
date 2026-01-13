@@ -39,10 +39,11 @@ public class ExitEventHandler extends BaseEventHandler {
         String vehicleLicensePlate = exitEvent.getLicensePlate();
         Instant exitTime = exitEvent.getExitTime();
         
-        // Find active session
+        // Find active session - throws exception if not found (required for pricing)
         ParkingSession session = parkingSessionService.findActiveSession(garage, vehicleLicensePlate);
         
         // Calculate final price
+        // ParkingFeeCalculator handles null basePrice (user entered but didn't park) and free time duration
         BigDecimal finalPrice = pricingService.calculateFee(
                 session.getEntryTime(), exitTime, session.getBasePrice());
         

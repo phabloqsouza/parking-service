@@ -1,9 +1,7 @@
 package com.estapar.parking.infrastructure.persistence.repository;
 
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
-import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,12 +14,18 @@ import java.util.UUID;
 @Repository
 public interface ParkingSessionRepository extends JpaRepository<ParkingSession, UUID> {
     
-    @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
     @Query("SELECT ps FROM ParkingSession ps WHERE ps.garage.id = :garageId " +
            "AND ps.vehicleLicensePlate = :vehicleLicensePlate " +
            "AND ps.exitTime IS NULL")
     Optional<ParkingSession> findByGarageIdAndVehicleLicensePlateAndExitTimeIsNull(
             @Param("garageId") UUID garageId, 
+            @Param("vehicleLicensePlate") String vehicleLicensePlate);
+    
+    @Query("SELECT COUNT(ps) > 0 FROM ParkingSession ps WHERE ps.garage.id = :garageId " +
+           "AND ps.vehicleLicensePlate = :vehicleLicensePlate " +
+           "AND ps.exitTime IS NULL")
+    boolean existsActiveSession(
+            @Param("garageId") UUID garageId,
             @Param("vehicleLicensePlate") String vehicleLicensePlate);
     
     @Query(value = "SELECT COALESCE(SUM(ps.final_price), 0) FROM parking_session ps " +

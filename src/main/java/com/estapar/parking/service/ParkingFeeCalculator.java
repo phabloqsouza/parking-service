@@ -29,7 +29,14 @@ public class ParkingFeeCalculator {
         long totalMinutes = duration.toMinutes();
 
         // First N minutes are free (configurable)
+        // If duration is under free time, return free regardless of basePrice
+        // This handles the case where user entered but didn't park (basePrice is null)
         if (totalMinutes <= freeMinutes) {
+            return bigDecimalUtils.zeroWithCurrencyScale();
+        }
+
+        // If basePrice is null, user entered but didn't park - should not charge
+        if (basePrice == null) {
             return bigDecimalUtils.zeroWithCurrencyScale();
         }
 

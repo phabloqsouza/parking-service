@@ -28,8 +28,7 @@ public class ParkingSessionService {
     }
     
     @Transactional(readOnly = true)
-    public Optional<ParkingSession> findActiveSessionOptional(Garage garage, String licensePlate) {
-        return sessionRepository
-                .findByGarageIdAndVehicleLicensePlateAndExitTimeIsNull(garage.getId(), licensePlate);
+    public boolean existsActiveSession(Garage garage, String licensePlate) {
+        return sessionRepository.existsActiveSession(garage.getId(), licensePlate);
     }
 }

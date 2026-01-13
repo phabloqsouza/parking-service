@@ -46,6 +46,37 @@ public class PricingService {
 
         return bigDecimalUtils.multiplyAndSetCurrencyScale(sector.getBasePrice(), multiplier);
     }
+    
+    public BigDecimal applyDynamicPricing(Sector sector, Long availableCapacityAtEntry, Integer garageMaxCapacity) {
+        if (availableCapacityAtEntry == null || garageMaxCapacity == null) {
+            // Fallback to current capacity if entry-time capacity is not available
+            return applyDynamicPricing(sector);
+        }
+        
+        // Calculate total occupied at entry time
+        long totalOccupiedAtEntry = garageMaxCapacity - availableCapacityAtEntry;
+        
+        // Calculate sector's occupied count at entry time
+        // We approximate by using the proportion of sector capacity to garage capacity
+        BigDecimal garageMax = valueOf(garageMaxCapacity);
+        BigDecimal sectorMax = valueOf(sector.getMaxCapacity());
+        // Use higher precision for proportion calculation (4 decimal places)
+        BigDecimal sectorProportion = bigDecimalUtils.divide(sectorMax, garageMax, 4);
+        
+        // Estimate sector occupied count at entry time
+        BigDecimal sectorOccupiedAtEntry = bigDecimalUtils.setScale(
+            bigDecimalUtils.multiplyAndSetCurrencyScale(sectorProportion, valueOf(totalOccupiedAtEntry)),
+            0);
+        
+        // Use the estimated occupied count at entry time for pricing
+        BigDecimal occupancyPercentage = bigDecimalUtils.calculatePercentage(
+            sectorOccupiedAtEntry, sectorMax);
+
+        // Apply pricing strategy based on occupancy at entry time
+        BigDecimal multiplier = strategyResolver.findStrategy(occupancyPercentage).getMultiplier();
+
+        return bigDecimalUtils.multiplyAndSetCurrencyScale(sector.getBasePrice(), multiplier);
+    }
 
     public BigDecimal calculateFee(Instant entryTime, Instant exitTime, BigDecimal basePriceWithDynamicPricing) {
         return feeCalculator.calculateFee(entryTime, exitTime, basePriceWithDynamicPricing);

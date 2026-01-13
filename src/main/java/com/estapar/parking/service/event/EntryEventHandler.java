@@ -43,12 +43,14 @@ public class EntryEventHandler extends BaseEventHandler {
 
         validate(garage, entryEvent);
 
+        long availableCapacity = sectorRepository.calcAvailableCapacity(garage.getId());
+        
         ParkingSession session = parkingMapper.toParkingSession(
                 entryEvent.getLicensePlate(),
                 entryEvent.getEntryTime(),
-                garage,
-                ZERO
+                garage
         );
+        session.setAvailableCapacityAtEntry(availableCapacity);
         sessionRepository.save(session);
 
         logger.info("Entry event processed: vehicle={}", entryEvent.getLicensePlate());
@@ -60,14 +62,13 @@ public class EntryEventHandler extends BaseEventHandler {
     }
 
     public void validate(Garage garage, EntryEventDto entryEvent) {
-        if (!sectorRepository.hasAvailableCapacity(garage.getId())) {
+        if (sectorRepository.calcAvailableCapacity(garage.getId()) <= 0) {
             throw new ResponseStatusException(CONFLICT, GARAGE_FULL);
         }
 
-        parkingSessionService.findActiveSessionOptional(garage, entryEvent.getLicensePlate())
-                .ifPresent(session -> {
-                    throw new ResponseStatusException(CONFLICT,
-                            String.format(VEHICLE_ALREADY_HAS_ACTIVE_SESSION, entryEvent.getLicensePlate()));
-                });
+        if (parkingSessionService.existsActiveSession(garage, entryEvent.getLicensePlate())) {
+            throw new ResponseStatusException(CONFLICT,
+                    String.format(VEHICLE_ALREADY_HAS_ACTIVE_SESSION, entryEvent.getLicensePlate()));
+        }
     }
 }
