@@ -35,6 +35,7 @@ public interface ParkingMapper {
     @Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
     @Mapping(target = "isDefault", constant = "true")
     @Mapping(target = "sectors", ignore = true)
+    @Mapping(target = "maxCapacity", ignore = true)
     Garage toGarage(GarageSimulatorResponseDto config);
     
     @Mapping(target = "id", ignore = true)
@@ -76,5 +77,10 @@ public interface ParkingMapper {
             .toList();
         
         garage.setSectors(sectors);
+        
+        int totalMaxCapacity = sectors.stream()
+            .mapToInt(Sector::getMaxCapacity)
+            .sum();
+        garage.setMaxCapacity(totalMaxCapacity);
     }
 }

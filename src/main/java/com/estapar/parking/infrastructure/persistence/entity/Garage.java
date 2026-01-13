@@ -28,6 +28,9 @@ public class Garage {
     @Column(nullable = false)
     private Instant createdAt;
 
+    @Column(nullable = false)
+    private Integer maxCapacity;
+
     @OneToMany(mappedBy = "garage", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Sector> sectors;
 

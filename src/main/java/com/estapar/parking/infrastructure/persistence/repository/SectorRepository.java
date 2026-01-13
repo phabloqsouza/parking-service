@@ -21,7 +21,7 @@ public interface SectorRepository extends JpaRepository<Sector, UUID> {
            "(SELECT COALESCE(SUM(s.occupied_count), 0) FROM sector s WHERE s.garage_id = :garageId) + " +
            "(SELECT COALESCE(COUNT(ps.id), 0) FROM parking_session ps " +
            " WHERE ps.garage_id = :garageId AND ps.sector_id IS NULL AND ps.exit_time IS NULL) < " +
-           "(SELECT COALESCE(SUM(s.max_capacity), 0) FROM sector s WHERE s.garage_id = :garageId)",
+           "(SELECT g.max_capacity FROM garage g WHERE g.id = :garageId)",
            nativeQuery = true)
     boolean hasAvailableCapacity(@Param("garageId") UUID garageId);
 
