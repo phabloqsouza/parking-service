@@ -21,7 +21,6 @@ import java.util.UUID;
 
 import static com.estapar.parking.api.exception.ErrorMessages.SECTOR_NOT_FOUND;
 import static com.estapar.parking.api.exception.ErrorMessages.notFound;
-import static java.math.BigDecimal.ZERO;
 import static java.math.BigDecimal.valueOf;
 
 @Service
@@ -38,13 +37,11 @@ public class PricingService {
     private final ParkingMapper parkingMapper;
 
     public BigDecimal calculateDynamicPrice(Sector sector) {
-        Garage garage = sector.getGarage();
-        long occupied = garageRepository.calcOccupancy(garage.getId());
-        
-        BigDecimal occupiedBigDecimal = valueOf(occupied);
-        BigDecimal max = valueOf(garage.getMaxCapacity());
+        long occupied = garageRepository.calcOccupancy(sector.getGarage().getId());
+
         // Use 4 decimal places for intermediate calculation, then scale to percentage scale
-        BigDecimal occupancyPercentage = bigDecimalUtils.calculatePercentage(occupiedBigDecimal, max);
+        BigDecimal occupancyPercentage = bigDecimalUtils
+                .calculatePercentage(valueOf(occupied), valueOf(sector.getGarage().getMaxCapacity()));
 
         // Apply pricing strategy based on garage occupancy
         BigDecimal multiplier = strategyResolver.findStrategy(occupancyPercentage).getMultiplier();
@@ -70,7 +67,7 @@ public class PricingService {
                 .sumRevenueByGarageAndSectorAndDate(garage.getId(), sector.getId(), startOfDay);
         
         if (totalRevenue == null) {
-            totalRevenue = ZERO;
+            totalRevenue = bigDecimalUtils.zeroWithCurrencyScale();
         }
         
         return parkingMapper.toRevenueResponseDto(bigDecimalUtils.setCurrencyScale(totalRevenue));

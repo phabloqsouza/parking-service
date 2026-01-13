@@ -72,8 +72,8 @@ class ParkingFeeCalculatorTest {
 
         BigDecimal result = parkingFeeCalculator.calculateFee(entryTime, exitTime, basePrice);
 
-        verify(bigDecimalUtils).divideWithCurrencyScale(eq(BigDecimal.ONE), eq(BigDecimal.valueOf(60)));
-        verify(bigDecimalUtils).multiplyAndSetCurrencyScale(any(BigDecimal.class), eq(basePrice));
+        // 31 minutes → ceil(31/60) = 1 hour → 1 * 10.00 = 10.00
+        verify(bigDecimalUtils).multiplyAndSetCurrencyScale(eq(BigDecimal.ONE), eq(basePrice));
         assertThat(result).isNotNull();
     }
 
