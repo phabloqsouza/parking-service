@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 import static com.estapar.parking.api.dto.EventType.EXIT;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.Duration;
 
 @Component
 @RequiredArgsConstructor
@@ -32,16 +32,12 @@ public class ExitEventHandler extends BaseEventHandler {
     
     @Override
     public void handle(Garage garage, WebhookEventDto event) {
-        if (!(event instanceof ExitEventDto exitEvent)) {
-            throw new IllegalArgumentException("Event must be an ExitEventDto");
-        }
-        
-        String vehicleLicensePlate = exitEvent.getLicensePlate();
-        Instant exitTime = exitEvent.getExitTime();
+        ExitEventDto exitEvent = requireEventType(event, ExitEventDto.class);
         
         // Find active session - throws exception if not found (required for pricing)
-        ParkingSession session = parkingSessionService.findActiveSession(garage, vehicleLicensePlate);
-        session.setExitTime(exitTime);
+        ParkingSession session = parkingSessionService.findActiveSession(garage, exitEvent.getLicensePlate());
+        session.setExitTime(exitEvent.getExitTime());
+        
         // Calculate final price
         // ParkingFeeCalculator handles null basePrice (user entered but didn't park) and free time duration
         BigDecimal finalPrice = pricingService.calculateFee(session);
@@ -53,9 +49,9 @@ public class ExitEventHandler extends BaseEventHandler {
         session.setFinalPrice(finalPrice);
         sessionRepository.save(session);
         
-        logger.info("Exit event processed: vehicle={}, finalPrice={}, duration={} minutes", 
-                   vehicleLicensePlate, finalPrice, 
-                   java.time.Duration.between(session.getEntryTime(), exitTime).toMinutes());
+        long durationMinutes = Duration.between(session.getEntryTime(), exitEvent.getExitTime()).toMinutes();
+        logger.info("Exit event processed: vehicle={}, finalPrice={}, duration={} minutes",
+                exitEvent.getLicensePlate(), finalPrice, durationMinutes);
     }
 
     @Override

@@ -37,8 +37,4 @@ public class BigDecimalUtils {
     public BigDecimal divide(BigDecimal dividend, BigDecimal divisor, int scale) {
         return dividend.divide(divisor, scale, decimalConfig.getRoundingMode());
     }
-    
-    public BigDecimal setScale(BigDecimal value, int scale) {
-        return value.setScale(scale, decimalConfig.getRoundingMode());
-    }
 }

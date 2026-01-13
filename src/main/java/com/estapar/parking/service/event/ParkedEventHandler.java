@@ -3,7 +3,6 @@ package com.estapar.parking.service.event;
 import com.estapar.parking.api.dto.EventType;
 import com.estapar.parking.api.dto.ParkedEventDto;
 import com.estapar.parking.api.dto.WebhookEventDto;
-import com.estapar.parking.api.exception.ErrorMessages;
 import com.estapar.parking.infrastructure.persistence.entity.Garage;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSpot;
@@ -18,11 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ResponseStatusException;
 
 import static com.estapar.parking.api.dto.EventType.PARKED;
 import static com.estapar.parking.api.exception.ErrorMessages.SPOT_ALREADY_OCCUPIED;
-import static org.springframework.http.HttpStatus.CONFLICT;
+import static com.estapar.parking.api.exception.ErrorMessages.conflict;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -42,9 +40,7 @@ public class ParkedEventHandler extends BaseEventHandler {
     
     @Override
     public void handle(Garage garage, WebhookEventDto event) {
-        if (!(event instanceof ParkedEventDto parkedEvent)) {
-            throw new IllegalArgumentException("Event must be a ParkedEventDto");
-        }
+        ParkedEventDto parkedEvent = requireEventType(event, ParkedEventDto.class);
         
         // Find active session
         ParkingSession session = parkingSessionService.findActiveSession(garage, parkedEvent.getLicensePlate());
@@ -56,19 +52,16 @@ public class ParkedEventHandler extends BaseEventHandler {
             return;
         }
         
-        findSpot(garage, parkedEvent).ifPresentOrElse(
+        findSpot(garage, parkedEvent).ifPresent(
             spot -> {
                 Sector sector = spot.getSector();
                 parkingSpotService.assignSpot(session, spot);
-                BigDecimal basePrice = pricingService.applyDynamicPricing(garage, sector);
+                BigDecimal basePrice = pricingService.calculateDynamicPrice(sector);
                 sectorCapacityService.incrementCapacity(sector);
                 session.setBasePrice(basePrice);
                 sessionRepository.save(session);
                 logger.info("Parked event processed: vehicle={}, spot_id={}, sector={}, basePrice={}", 
                            parkedEvent.getLicensePlate(), spot.getId(), sector.getSectorCode(), basePrice);
-            },
-            () -> {
-                // Already logged in findSpot, just return
             }
         );
     }
@@ -86,8 +79,7 @@ public class ParkedEventHandler extends BaseEventHandler {
                         parkedEvent.getLng())
                 .map(spot -> {
                     if (spot.getIsOccupied()) {
-                        throw new ResponseStatusException(CONFLICT,
-                            String.format(SPOT_ALREADY_OCCUPIED, spot.getId()));
+                        throw conflict(SPOT_ALREADY_OCCUPIED, spot.getId());
                     }
                     return spot;
                 })

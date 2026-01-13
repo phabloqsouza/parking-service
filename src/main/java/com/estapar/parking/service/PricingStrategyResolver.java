@@ -5,11 +5,11 @@ import com.estapar.parking.infrastructure.persistence.repository.PricingStrategy
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
-
-import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import java.math.BigDecimal;
+
+import static com.estapar.parking.api.exception.ErrorMessages.PRICING_STRATEGY_NOT_FOUND;
+import static com.estapar.parking.api.exception.ErrorMessages.notFound;
 
 @Service
 @RequiredArgsConstructor
@@ -20,8 +20,6 @@ public class PricingStrategyResolver {
     @Transactional(readOnly = true)
     public PricingStrategy findStrategy(BigDecimal occupancyPercentage) {
         return repository.findActiveStrategyByOccupancyRange(occupancyPercentage)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
-                    String.format("No active pricing strategy found for occupancy percentage: %.2f", 
-                                 occupancyPercentage)));
+                .orElseThrow(() -> notFound(PRICING_STRATEGY_NOT_FOUND, occupancyPercentage));
     }
 }

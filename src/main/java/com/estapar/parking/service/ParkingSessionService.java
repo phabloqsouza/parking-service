@@ -6,12 +6,9 @@ import com.estapar.parking.infrastructure.persistence.repository.ParkingSessionR
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import static com.estapar.parking.api.exception.ErrorMessages.NO_ACTIVE_SESSION;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
-
-import java.util.Optional;
+import static com.estapar.parking.api.exception.ErrorMessages.notFound;
 
 @Service
 @RequiredArgsConstructor
@@ -23,8 +20,7 @@ public class ParkingSessionService {
     public ParkingSession findActiveSession(Garage garage, String licensePlate) {
         return sessionRepository
                 .findByGarageIdAndVehicleLicensePlateAndExitTimeIsNull(garage.getId(), licensePlate)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND,
-                    String.format(NO_ACTIVE_SESSION, licensePlate)));
+                .orElseThrow(() -> notFound(NO_ACTIVE_SESSION, licensePlate));
     }
     
     @Transactional(readOnly = true)

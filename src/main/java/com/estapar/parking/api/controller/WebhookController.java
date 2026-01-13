@@ -12,7 +12,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,14 +43,13 @@ public class WebhookController {
             @RequestHeader(value = "X-Garage-Id", required = false) UUID garageId,
             @Valid @RequestBody WebhookEventDto eventDto) {
         
-        String correlationId = MDC.get("correlationId");
-        logger.info("Received webhook event: correlationId={}, type={}, licensePlate={}, garageId={}", 
-                   correlationId, eventDto.getEventType(), eventDto.getLicensePlate(), garageId);
+        logger.info("Received webhook event: type={}, licensePlate={}, garageId={}", 
+                   eventDto.getEventType(), eventDto.getLicensePlate(), garageId);
 
         webhookEventService.processEvent(garageId, eventDto);
 
-        logger.info("Event processed successfully: correlationId={}, eventType={}, licensePlate={}", 
-                   correlationId, eventDto.getEventType(), eventDto.getLicensePlate());
+        logger.info("Event processed successfully: eventType={}, licensePlate={}", 
+                   eventDto.getEventType(), eventDto.getLicensePlate());
         return ResponseEntity.ok().build();
     }
 }

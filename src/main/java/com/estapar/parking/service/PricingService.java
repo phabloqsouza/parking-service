@@ -5,13 +5,13 @@ import com.estapar.parking.api.mapper.ParkingMapper;
 import com.estapar.parking.infrastructure.persistence.entity.Garage;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
 import com.estapar.parking.infrastructure.persistence.entity.Sector;
+import com.estapar.parking.infrastructure.persistence.repository.GarageRepository;
 import com.estapar.parking.infrastructure.persistence.repository.ParkingSessionRepository;
 import com.estapar.parking.infrastructure.persistence.repository.SectorRepository;
 import com.estapar.parking.util.BigDecimalUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -20,9 +20,9 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static com.estapar.parking.api.exception.ErrorMessages.SECTOR_NOT_FOUND;
+import static com.estapar.parking.api.exception.ErrorMessages.notFound;
 import static java.math.BigDecimal.ZERO;
 import static java.math.BigDecimal.valueOf;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
@@ -33,12 +33,13 @@ public class PricingService {
     private final BigDecimalUtils bigDecimalUtils;
     private final ParkingSessionRepository sessionRepository;
     private final SectorRepository sectorRepository;
+    private final GarageRepository garageRepository;
     private final GarageResolver garageResolver;
     private final ParkingMapper parkingMapper;
 
-    public BigDecimal applyDynamicPricing(Garage garage, Sector sector) {
-        long availableCapacity = sectorRepository.calcAvailableCapacity(garage.getId());
-        long occupied = garage.getMaxCapacity() - availableCapacity;
+    public BigDecimal calculateDynamicPrice(Sector sector) {
+        Garage garage = sector.getGarage();
+        long occupied = garageRepository.calcOccupancy(garage.getId());
         
         BigDecimal occupiedBigDecimal = valueOf(occupied);
         BigDecimal max = valueOf(garage.getMaxCapacity());
@@ -60,8 +61,7 @@ public class PricingService {
         Garage garage = garageResolver.getGarage(garageId);
         
         Sector sector = sectorRepository.findByGarageIdAndSectorCode(garage.getId(), sectorCode)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, 
-                    String.format(SECTOR_NOT_FOUND, sectorCode)));
+                .orElseThrow(() -> notFound(SECTOR_NOT_FOUND, sectorCode));
         
         Instant startOfDay = date.atStartOfDay().toInstant(ZoneOffset.UTC);
         

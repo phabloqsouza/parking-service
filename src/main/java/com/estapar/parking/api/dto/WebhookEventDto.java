@@ -6,12 +6,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
-import lombok.Setter;
-
-import java.util.UUID;
 
 @Getter
-@Setter
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
     property = "event_type",
@@ -33,4 +29,11 @@ public abstract class WebhookEventDto   {
     @JsonProperty("license_plate")
     private String licensePlate;
 
+    public void setLicensePlate(String licensePlate) {
+        this.licensePlate = licensePlate != null ? licensePlate.toUpperCase() : null;
+    }
+
+    public void setEventType(EventType eventType) {
+        this.eventType = eventType;
+    }
 }

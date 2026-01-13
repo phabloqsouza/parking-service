@@ -14,7 +14,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
-import org.slf4j.MDC;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -25,27 +24,21 @@ public class GlobalExceptionHandler {
     
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     
-    private String getCorrelationId() {
-        return MDC.get("correlationId");
-    }
-    
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatusException(ResponseStatusException ex) {
-        String correlationId = getCorrelationId();
         HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
         if (status == null) {
             status = HttpStatus.INTERNAL_SERVER_ERROR;
         }
         
-        logger.warn("Response status exception: correlationId={}, status={}, message={}", correlationId, status, ex.getReason());
+        logger.warn("Response status exception: status={}, message={}", status, ex.getReason());
         ErrorResponse error = new ErrorResponse("ERROR", ex.getReason(), Instant.now());
         return ResponseEntity.status(status).body(error);
     }
     
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLockingFailureException(OptimisticLockingFailureException ex) {
-        String correlationId = getCorrelationId();
-        logger.warn("Optimistic locking failure: correlationId={}, message={}", correlationId, ex.getMessage());
+        logger.warn("Optimistic locking failure: message={}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(
                 "CONCURRENT_MODIFICATION",
                 "The resource was modified by another transaction. Please retry.",
@@ -55,8 +48,7 @@ public class GlobalExceptionHandler {
     
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        String correlationId = getCorrelationId();
-        logger.warn("Validation exception: correlationId={}, errors={}", correlationId, ex.getBindingResult().getAllErrors());
+        logger.warn("Validation exception: errors={}", ex.getBindingResult().getAllErrors());
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
@@ -68,24 +60,21 @@ public class GlobalExceptionHandler {
     
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        String correlationId = getCorrelationId();
-        logger.warn("Illegal argument exception: correlationId={}, message={}", correlationId, ex.getMessage());
+        logger.warn("Illegal argument exception: message={}", ex.getMessage());
         ErrorResponse error = new ErrorResponse("INVALID_ARGUMENT", ex.getMessage(), Instant.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
     
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
-        String correlationId = getCorrelationId();
-        logger.error("Illegal state exception: correlationId={}, message={}", correlationId, ex.getMessage());
+        logger.error("Illegal state exception: message={}", ex.getMessage());
         ErrorResponse error = new ErrorResponse("INVALID_STATE", ex.getMessage(), Instant.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
     
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        String correlationId = getCorrelationId();
-        logger.error("Unexpected exception: correlationId={}, error={}", correlationId, ex.getMessage(), ex);
+        logger.error("Unexpected exception: error={}", ex.getMessage(), ex);
         ErrorResponse error = new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred", Instant.now());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
@@ -104,7 +93,6 @@ public class GlobalExceptionHandler {
             this.code = code;
             this.message = message;
             this.timestamp = timestamp;
-            this.correlationId = MDC.get("correlationId");
         }
     }
 }

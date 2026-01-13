@@ -14,7 +14,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,17 +49,16 @@ public class RevenueController {
             @RequestHeader(value = "X-Garage-Id", required = false) UUID garageId,
             @Valid @RequestBody RevenueRequestDto requestDto) {
         
-        String correlationId = MDC.get("correlationId");
-        logger.info("Revenue query: correlationId={}, date={}, sector={}, garageId={}", 
-                   correlationId, requestDto.getDate(), requestDto.getSector(), garageId);
+        logger.info("Revenue query: date={}, sector={}, garageId={}", 
+                   requestDto.getDate(), requestDto.getSector(), garageId);
         
         RevenueResponseDto response = pricingService.getRevenue(
                 garageId,
                 requestDto.getDate(),
                 requestDto.getSector());
         
-        logger.info("Revenue query completed: correlationId={}, amount={}, sector={}",
-                   correlationId, response.getAmount(), requestDto.getSector());
+        logger.info("Revenue query completed: amount={}, sector={}",
+                   response.getAmount(), requestDto.getSector());
         
         return ResponseEntity.ok(response);
     }

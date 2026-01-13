@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -40,10 +41,9 @@ public class ParkingFeeCalculator {
             return bigDecimalUtils.zeroWithCurrencyScale();
         }
 
-        var chargeableMinutes = totalMinutes - freeMinutes;
-        
-        BigDecimal chargeableHours = bigDecimalUtils.divideWithCurrencyScale(
-                BigDecimal.valueOf(chargeableMinutes), BigDecimal.valueOf(MINUTES_PER_HOUR));
+        // Round up total time to nearest hour (do NOT subtract free minutes)
+        BigDecimal chargeableHours = BigDecimal.valueOf(totalMinutes)
+                .divide(BigDecimal.valueOf(MINUTES_PER_HOUR), 0, RoundingMode.CEILING);
         
         // Calculate final price: hours * base price
         return bigDecimalUtils.multiplyAndSetCurrencyScale(chargeableHours, basePrice);
