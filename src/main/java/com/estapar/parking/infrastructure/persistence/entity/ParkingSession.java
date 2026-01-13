@@ -49,7 +49,7 @@ public class ParkingSession {
     @Column
     private Instant exitTime;
     
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(nullable = true, precision = 19, scale = 2)
     private BigDecimal basePrice;
     
     @Column(precision = 19, scale = 2)

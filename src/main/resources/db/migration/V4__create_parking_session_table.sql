@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS parking_session (
     sector_id BINARY(16) NULL,
     entry_time TIMESTAMP NOT NULL,
     exit_time TIMESTAMP NULL,
-    base_price DECIMAL(19,2) NOT NULL,
+    base_price DECIMAL(19,2) NULL,
     final_price DECIMAL(19,2) NULL,
     version INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -22,7 +22,7 @@ import java.util.UUID;
     @JsonSubTypes.Type(value = ParkedEventDto.class, name = "PARKED"),
     @JsonSubTypes.Type(value = ExitEventDto.class, name = "EXIT")
 })
-public abstract class WebhookEventDto implements ParkingEvent {
+public abstract class WebhookEventDto   {
     
     @NotNull(message = "Event type is required")
     @JsonProperty("event_type")
@@ -32,9 +32,5 @@ public abstract class WebhookEventDto implements ParkingEvent {
     @Pattern(regexp = "[a-zA-Z0-9]{7}", message = "License plate must be exactly 7 alphanumeric characters")
     @JsonProperty("license_plate")
     private String licensePlate;
-    
-    private String sector;
-    
-    private UUID garageId;
 
 }

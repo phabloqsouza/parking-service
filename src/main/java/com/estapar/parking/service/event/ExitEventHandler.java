@@ -5,41 +5,34 @@ import com.estapar.parking.api.dto.ExitEventDto;
 import com.estapar.parking.api.dto.WebhookEventDto;
 import com.estapar.parking.infrastructure.persistence.entity.Garage;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
-import com.estapar.parking.infrastructure.persistence.entity.ParkingSpot;
-import com.estapar.parking.infrastructure.persistence.entity.Sector;
 import com.estapar.parking.infrastructure.persistence.repository.ParkingSessionRepository;
-import com.estapar.parking.infrastructure.persistence.repository.ParkingSpotRepository;
 import com.estapar.parking.service.ParkingSessionService;
+import com.estapar.parking.service.ParkingSpotService;
 import com.estapar.parking.service.PricingService;
-import com.estapar.parking.service.SectorCapacityService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
+
+import static com.estapar.parking.api.dto.EventType.EXIT;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor
-public class ExitEventHandler implements EventHandler {
+public class ExitEventHandler extends BaseEventHandler {
     
     private static final Logger logger = LoggerFactory.getLogger(ExitEventHandler.class);
     
     private final ParkingSessionRepository sessionRepository;
-    private final ParkingSpotRepository spotRepository;
-    private final PricingService pricingService;
-    private final SectorCapacityService sectorCapacityService;
     private final ParkingSessionService parkingSessionService;
+    private final ParkingSpotService parkingSpotService;
+    private final PricingService pricingService;
     
     @Override
-    @Transactional(isolation = Isolation.SERIALIZABLE)
     public void handle(Garage garage, WebhookEventDto event) {
-        if (!(event instanceof ExitEventDto exitEvent)) {
-            throw new IllegalArgumentException("Event must be an ExitEventDto");
-        }
+        ExitEventDto exitEvent = castEvent(event, ExitEventDto.class);
         
         String vehicleLicensePlate = exitEvent.getLicensePlate();
         Instant exitTime = exitEvent.getExitTime();
@@ -52,14 +45,7 @@ public class ExitEventHandler implements EventHandler {
                 session.getEntryTime(), exitTime, session.getBasePrice());
         
         // Free spot if assigned and decrement sector capacity
-        if (session.getSpot() != null) {
-            ParkingSpot spot = session.getSpot();
-            spot.setIsOccupied(false);
-            spotRepository.save(spot);
-            
-            Sector sector = spot.getSector();
-            sectorCapacityService.decrementCapacity(sector);
-        }
+        parkingSpotService.freeSpot(session);
         
         // Update session
         session.setExitTime(exitTime);
@@ -73,6 +59,6 @@ public class ExitEventHandler implements EventHandler {
 
     @Override
     public boolean supports(WebhookEventDto event) {
-        return EventType.EXIT.equals(event.getEventType());
+        return EXIT.equals(event.getEventType());
     }
 }
