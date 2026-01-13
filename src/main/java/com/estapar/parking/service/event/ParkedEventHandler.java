@@ -47,7 +47,7 @@ public class ParkedEventHandler implements EventHandler {
             return;
         }
         
-        Optional<ParkingSpot> optionalSpot = findSpot(session, parkedEvent);
+        Optional<ParkingSpot> optionalSpot = findSpot(garage, parkedEvent);
 
         if (optionalSpot.isEmpty()) {
             return;
@@ -59,6 +59,7 @@ public class ParkedEventHandler implements EventHandler {
         spotRepository.save(spot);
 
         session.setSpot(spot);
+        session.setSector(spot.getSector());
         sessionRepository.save(session);
 
         logger.info("Parked event processed: vehicle={}, spot_id={}", parkedEvent.getLicensePlate(), spot.getId());
@@ -70,17 +71,17 @@ public class ParkedEventHandler implements EventHandler {
         return EventType.PARKED.equals(event.getEventType());
     }
     
-    private Optional<ParkingSpot> findSpot(ParkingSession session, ParkedEventDto parkedEvent) {
+    private Optional<ParkingSpot> findSpot(Garage garage, ParkedEventDto parkedEvent) {
         Optional<ParkingSpot> optionalSpot = spotRepository
-                .findBySectorIdAndLatitudeAndLongitude(
-                        session.getSector().getId(), 
+                .findByGarageIdAndLatitudeAndLongitude(
+                        garage.getId(), 
                         parkedEvent.getLat(), 
                         parkedEvent.getLng());
         
         if (optionalSpot.isEmpty()) {
-            logger.warn("No parking spot found for exact coordinates ({}, {}) in sector {}. " +
+            logger.warn("No parking spot found for exact coordinates ({}, {}) in garage {}. " +
                        "Spot assignment skipped (graceful degradation).", 
-                       parkedEvent.getLat(), parkedEvent.getLng(), session.getSector().getSectorCode());
+                       parkedEvent.getLat(), parkedEvent.getLng(), garage.getId());
             return Optional.empty();
         }
         

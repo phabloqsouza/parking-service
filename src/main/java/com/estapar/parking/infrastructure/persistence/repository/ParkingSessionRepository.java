@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,7 +17,7 @@ import java.util.UUID;
 public interface ParkingSessionRepository extends JpaRepository<ParkingSession, UUID> {
     
     @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
-    @Query("SELECT ps FROM ParkingSession ps WHERE ps.sector.garage.id = :garageId " +
+    @Query("SELECT ps FROM ParkingSession ps WHERE ps.garage.id = :garageId " +
            "AND ps.vehicleLicensePlate = :vehicleLicensePlate " +
            "AND ps.exitTime IS NULL")
     Optional<ParkingSession> findByGarageIdAndVehicleLicensePlateAndExitTimeIsNull(

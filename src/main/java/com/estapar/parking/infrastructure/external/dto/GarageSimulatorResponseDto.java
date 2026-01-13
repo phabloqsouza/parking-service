@@ -1,5 +1,6 @@
 package com.estapar.parking.infrastructure.external.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
@@ -25,6 +26,7 @@ public record GarageSimulatorResponseDto(
     @JsonProperty("spots")
     List<SpotConfigDto> spots
 ) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record SectorConfigDto(
         @NotNull(message = "Sector code is required")
         @NotEmpty(message = "Sector code cannot be empty")
@@ -32,7 +34,7 @@ public record GarageSimulatorResponseDto(
         
         @NotNull(message = "Base price is required")
         @Positive(message = "Base price must be positive")
-        @JsonProperty("basePrice")
+        @JsonProperty("base_price")
         BigDecimal basePrice,
         
         @NotNull(message = "Max capacity is required")
@@ -41,6 +43,7 @@ public record GarageSimulatorResponseDto(
         Integer maxCapacity
     ) {}
     
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record SpotConfigDto(
         @NotNull(message = "Spot ID is required")
         @Positive(message = "Spot ID must be positive")

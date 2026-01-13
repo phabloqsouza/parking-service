@@ -16,7 +16,7 @@ import java.util.UUID;
            @Index(name = "idx_spot_exit", columnList = "spot_id,exit_time"),
            @Index(name = "idx_spot_vehicle_exit", columnList = "spot_id,vehicle_license_plate,exit_time"),
            @Index(name = "idx_spot_entry_time", columnList = "spot_id,entry_time"),
-           @Index(name = "idx_sector_exit", columnList = "sector_id,exit_time")
+           @Index(name = "idx_garage_vehicle_exit", columnList = "garage_id,vehicle_license_plate,exit_time")
        })
 @Getter
 @Setter
@@ -29,11 +29,15 @@ public class ParkingSession {
     private UUID id;
     
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id", nullable = false)
+    private Garage garage;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "spot_id")
     private ParkingSpot spot;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sector_id", nullable = false)
+    @JoinColumn(name = "sector_id")
     private Sector sector;
     
     @Column(nullable = false, length = 20)

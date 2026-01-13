@@ -9,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,6 +20,14 @@ public interface ParkingSpotRepository extends JpaRepository<ParkingSpot, UUID> 
            "AND ps.latitude = :latitude AND ps.longitude = :longitude")
     Optional<ParkingSpot> findBySectorIdAndLatitudeAndLongitude(
             @Param("sectorId") UUID sectorId,
+            @Param("latitude") BigDecimal latitude,
+            @Param("longitude") BigDecimal longitude);
+    
+    @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
+    @Query("SELECT ps FROM ParkingSpot ps WHERE ps.sector.garage.id = :garageId " +
+           "AND ps.latitude = :latitude AND ps.longitude = :longitude")
+    Optional<ParkingSpot> findByGarageIdAndLatitudeAndLongitude(
+            @Param("garageId") UUID garageId,
             @Param("latitude") BigDecimal latitude,
             @Param("longitude") BigDecimal longitude);
 }

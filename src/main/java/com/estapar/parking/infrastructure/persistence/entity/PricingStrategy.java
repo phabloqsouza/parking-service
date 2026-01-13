@@ -12,8 +12,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "pricing_strategy",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"garage_id", "occupancy_min_percentage", "occupancy_max_percentage"}),
-       indexes = @Index(name = "idx_active_occupancy", columnList = "garage_id,is_active,occupancy_min_percentage,occupancy_max_percentage"))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"occupancy_min_percentage", "occupancy_max_percentage"}),
+       indexes = @Index(name = "idx_active_occupancy", columnList = "is_active,occupancy_min_percentage,occupancy_max_percentage"))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,10 +23,6 @@ public class PricingStrategy {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "garage_id", nullable = false)
-    private Garage garage;
     
     @Column(nullable = false, precision = 5, scale = 2)
     private BigDecimal occupancyMinPercentage;

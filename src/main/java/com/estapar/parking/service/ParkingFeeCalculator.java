@@ -35,7 +35,6 @@ public class ParkingFeeCalculator {
 
         var chargeableMinutes = totalMinutes - freeMinutes;
         
-        // Calculate hours (round up)
         BigDecimal chargeableHours = bigDecimalUtils.divideWithCurrencyScale(
                 BigDecimal.valueOf(chargeableMinutes), BigDecimal.valueOf(MINUTES_PER_HOUR));
         

@@ -51,16 +51,15 @@ public class ExitEventHandler implements EventHandler {
         BigDecimal finalPrice = pricingService.calculateFee(
                 session.getEntryTime(), exitTime, session.getBasePrice());
         
-        // Free spot if assigned
+        // Free spot if assigned and decrement sector capacity
         if (session.getSpot() != null) {
             ParkingSpot spot = session.getSpot();
             spot.setIsOccupied(false);
             spotRepository.save(spot);
+            
+            Sector sector = spot.getSector();
+            sectorCapacityService.decrementCapacity(sector);
         }
-        
-        // Decrement sector capacity
-        Sector sector = session.getSector();
-        sectorCapacityService.decrementCapacity(sector);
         
         // Update session
         session.setExitTime(exitTime);

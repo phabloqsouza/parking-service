@@ -36,9 +36,6 @@ public class JacksonConfig {
             mapper.setTimeZone(TimeZone.getTimeZone("UTC"));
         }
         
-        // Note: DateTime format patterns are configured via application.yml spring.jackson properties
-        // and will be applied globally. The DateTimeConfig is available for programmatic access if needed.
-        
         return mapper;
     }
 }

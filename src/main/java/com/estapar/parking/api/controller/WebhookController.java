@@ -1,9 +1,7 @@
 package com.estapar.parking.api.controller;
 
 import com.estapar.parking.api.dto.WebhookEventDto;
-import com.estapar.parking.infrastructure.persistence.entity.Garage;
-import com.estapar.parking.service.GarageResolver;
-import com.estapar.parking.service.event.EventHandler;
+import com.estapar.parking.service.WebhookEventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -18,7 +16,6 @@ import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -29,8 +26,7 @@ public class WebhookController {
     
     private static final Logger logger = LoggerFactory.getLogger(WebhookController.class);
     
-    private final List<EventHandler> eventHandlers;
-    private final GarageResolver garageResolver;
+    private final WebhookEventService webhookEventService;
     
     @PostMapping
     @Operation(
@@ -52,11 +48,7 @@ public class WebhookController {
         logger.info("Received webhook event: correlationId={}, type={}, licensePlate={}, garageId={}", 
                    correlationId, eventDto.getEventType(), eventDto.getLicensePlate(), garageId);
 
-        Garage garage = garageResolver.getGarage(garageId);
-        
-        eventHandlers.stream()
-                .filter(eventHandler -> eventHandler.supports(eventDto))
-                .findFirst().ifPresent(handler -> handler.handle(garage, eventDto));
+        webhookEventService.processEvent(garageId, eventDto);
 
         logger.info("Event processed successfully: correlationId={}, eventType={}, licensePlate={}", 
                    correlationId, eventDto.getEventType(), eventDto.getLicensePlate());

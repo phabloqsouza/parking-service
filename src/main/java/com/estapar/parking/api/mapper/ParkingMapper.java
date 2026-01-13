@@ -22,21 +22,22 @@ public interface ParkingMapper {
     @Mapping(target = "timestamp", expression = "java(java.time.Instant.now())")
     RevenueResponseDto toRevenueResponseDto(BigDecimal amount);
     
-    @Mapping(target = "id", expression = "java(java.util.UUID.randomUUID())")
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
     @Mapping(target = "spot", ignore = true)
+    @Mapping(target = "sector", ignore = true)
     @Mapping(target = "exitTime", ignore = true)
     @Mapping(target = "finalPrice", ignore = true)
     @Mapping(target = "version", ignore = true)
-    ParkingSession toParkingSession(String vehicleLicensePlate, Instant entryTime, Garage garage, Sector sector, BigDecimal basePrice);
+    ParkingSession toParkingSession(String vehicleLicensePlate, Instant entryTime, Garage garage, BigDecimal basePrice);
     
-    @Mapping(target = "id", expression = "java(java.util.UUID.randomUUID())")
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
     @Mapping(target = "isDefault", constant = "true")
     @Mapping(target = "sectors", ignore = true)
     Garage toGarage(GarageSimulatorResponseDto config);
     
-    @Mapping(target = "id", expression = "java(java.util.UUID.randomUUID())")
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "sectorCode", source = "sector")
     @Mapping(target = "basePrice", source = "basePrice")
     @Mapping(target = "maxCapacity", source = "maxCapacity")
@@ -46,7 +47,7 @@ public interface ParkingMapper {
     @Mapping(target = "garage", ignore = true)
     Sector toSector(GarageSimulatorResponseDto.SectorConfigDto config);
     
-    @Mapping(target = "id", expression = "java(java.util.UUID.randomUUID())")
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "latitude", source = "lat")
     @Mapping(target = "longitude", source = "lng")
     @Mapping(target = "isOccupied", constant = "false")

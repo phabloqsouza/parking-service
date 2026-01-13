@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -18,10 +17,10 @@ public class PricingStrategyResolver {
     private final PricingStrategyRepository repository;
     
     @Transactional(readOnly = true)
-    public PricingStrategy findStrategy(UUID garageId, BigDecimal occupancyPercentage) {
-        return repository.findActiveStrategyByGarageAndOccupancyRange(garageId, occupancyPercentage)
+    public PricingStrategy findStrategy(BigDecimal occupancyPercentage) {
+        return repository.findActiveStrategyByOccupancyRange(occupancyPercentage)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    String.format("No active pricing strategy found for garage %s and occupancy percentage: %.2f", 
-                                 garageId, occupancyPercentage)));
+                    String.format("No active pricing strategy found for occupancy percentage: %.2f", 
+                                 occupancyPercentage)));
     }
 }

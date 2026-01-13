@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 @FeignClient(
     name = "garageSimulator",
-    url = "${parking.simulator.url:http://localhost:8080}",
+    url = "${parking.simulator.url:http://localhost:3000}",
     configuration = com.estapar.parking.config.FeignConfig.class
 )
 public interface GarageSimulatorFeignClient {

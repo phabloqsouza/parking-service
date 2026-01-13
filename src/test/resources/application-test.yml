@@ -38,7 +38,7 @@ spring:
 
 parking:
   simulator:
-    url: ${PARKING_SIMULATOR_URL:http://localhost:8080}
+    url: ${PARKING_SIMULATOR_URL:http://localhost:3000}
     retry:
       max-attempts: 3
       initial-interval-millis: 1000

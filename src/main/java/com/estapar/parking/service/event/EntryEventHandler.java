@@ -46,7 +46,7 @@ public class EntryEventHandler implements EventHandler {
 
         validate(garage, sector, entryEvent);
 
-        BigDecimal basePrice = pricingService.applyDynamicPricing(garage.getId(), sector);
+        BigDecimal basePrice = pricingService.applyDynamicPricing(sector);
 
         sectorCapacityService.incrementCapacity(sector);
 
@@ -54,7 +54,6 @@ public class EntryEventHandler implements EventHandler {
                 entryEvent.getLicensePlate(),
                 entryEvent.getEntryTime(),
                 garage,
-                sector,
                 basePrice
         );
         sessionRepository.save(session);

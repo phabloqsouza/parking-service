@@ -27,7 +27,6 @@ class BigDecimalUtilsTest {
     void setUp() {
         when(decimalConfig.getCurrencyScale()).thenReturn(2);
         when(decimalConfig.getPercentageScale()).thenReturn(2);
-        when(decimalConfig.getCoordinateScale()).thenReturn(8);
         when(decimalConfig.getRoundingMode()).thenReturn(RoundingMode.HALF_UP);
     }
 

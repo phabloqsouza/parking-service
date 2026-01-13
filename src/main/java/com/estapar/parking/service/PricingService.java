@@ -31,14 +31,14 @@ public class PricingService {
     private final GarageResolver garageResolver;
     private final ParkingMapper parkingMapper;
 
-    public BigDecimal applyDynamicPricing(UUID garageId, Sector sector) {
+    public BigDecimal applyDynamicPricing(Sector sector) {
         BigDecimal occupied = BigDecimal.valueOf(sector.getOccupiedCount());
         BigDecimal max = BigDecimal.valueOf(sector.getMaxCapacity());
         // Use 4 decimal places for intermediate calculation, then scale to percentage scale
         BigDecimal occupancyPercentage = bigDecimalUtils.calculatePercentage(occupied, max);
 
         // Apply pricing strategy based on occupancy
-        BigDecimal multiplier = strategyResolver.findStrategy(garageId, occupancyPercentage).getMultiplier();
+        BigDecimal multiplier = strategyResolver.findStrategy(occupancyPercentage).getMultiplier();
 
         return bigDecimalUtils.multiplyAndSetCurrencyScale(sector.getBasePrice(), multiplier);
     }
@@ -54,7 +54,6 @@ public class PricingService {
         Sector sector = sectorRepository.findByGarageIdAndSectorCode(garage.getId(), sectorCode)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sector not found: " + sectorCode));
         
-        // Convert LocalDate to Instant (start and end of day in UTC)
         Instant startOfDay = date.atStartOfDay().toInstant(ZoneOffset.UTC);
         
         // Sum revenue directly in database query (no need to fetch all records)

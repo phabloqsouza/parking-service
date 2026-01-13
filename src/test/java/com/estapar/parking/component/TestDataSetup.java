@@ -84,13 +84,11 @@ public class TestDataSetup {
 
     @Transactional
     public PricingStrategy createPricingStrategy(
-            Garage garage,
             BigDecimal minOccupancy,
             BigDecimal maxOccupancy,
             BigDecimal multiplier) {
         PricingStrategy strategy = new PricingStrategy();
         strategy.setId(UUID.randomUUID());
-        strategy.setGarage(garage);
         strategy.setOccupancyMinPercentage(minOccupancy);
         strategy.setOccupancyMaxPercentage(maxOccupancy);
         strategy.setMultiplier(multiplier);
@@ -100,11 +98,11 @@ public class TestDataSetup {
     }
 
     @Transactional
-    public void createDefaultPricingStrategies(Garage garage) {
-        createPricingStrategy(garage, BigDecimal.ZERO, new BigDecimal("24.99"), new BigDecimal("0.90"));
-        createPricingStrategy(garage, new BigDecimal("25.00"), new BigDecimal("49.99"), BigDecimal.ONE);
-        createPricingStrategy(garage, new BigDecimal("50.00"), new BigDecimal("74.99"), new BigDecimal("1.10"));
-        createPricingStrategy(garage, new BigDecimal("75.00"), new BigDecimal("100.00"), new BigDecimal("1.25"));
+    public void createDefaultPricingStrategies() {
+        createPricingStrategy(BigDecimal.ZERO, new BigDecimal("24.99"), new BigDecimal("0.90"));
+        createPricingStrategy(new BigDecimal("25.00"), new BigDecimal("49.99"), BigDecimal.ONE);
+        createPricingStrategy(new BigDecimal("50.00"), new BigDecimal("74.99"), new BigDecimal("1.10"));
+        createPricingStrategy(new BigDecimal("75.00"), new BigDecimal("100.00"), new BigDecimal("1.25"));
     }
 
     @Transactional

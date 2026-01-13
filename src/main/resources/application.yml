@@ -47,7 +47,7 @@ spring:
 
 parking:
   simulator:
-    url: http://localhost:8080
+    url: http://localhost:3000
     retry:
       max-attempts: 5
       initial-interval-millis: 2000
@@ -69,7 +69,6 @@ springdoc:
   api-docs:
     path: /api-docs
   swagger-ui:
-    path: /swagger-ui.html
     enabled: true
     operationsSorter: method
     tagsSorter: alpha

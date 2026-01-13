@@ -30,14 +30,13 @@ public class PricingSteps {
 
     @Given("the pricing strategies are configured in database:")
     public void thePricingStrategiesAreConfiguredInDatabase(DataTable dataTable) {
-        Garage defaultGarage = garageResolver.getDefaultGarage();
         List<Map<String, String>> rows = dataTable.asMaps(String.class, String.class);
 
         for (Map<String, String> row : rows) {
             BigDecimal minOccupancy = new BigDecimal(row.get("occupancy_min"));
             BigDecimal maxOccupancy = new BigDecimal(row.get("occupancy_max"));
             BigDecimal multiplier = new BigDecimal(row.get("multiplier"));
-            testDataSetup.createPricingStrategy(defaultGarage, minOccupancy, maxOccupancy, multiplier);
+            testDataSetup.createPricingStrategy(minOccupancy, maxOccupancy, multiplier);
         }
     }
 
