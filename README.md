@@ -231,23 +231,29 @@ Manually trigger garage initialization from simulator (used by Docker entrypoint
 
 - Check garage availability (not at 100% garage capacity)
 - Capacity is conceptually reserved via garage occupancy calculation (sessions without sector count toward garage capacity)
-- Create parking session with `spot_id = null` and `sector_id = null` (assigned on PARKED event)
-- No dynamic pricing calculation at entry time
+- Create parking session with `spot_id = null` (assigned on PARKED event)
+- Calculate dynamic pricing multiplier based on garage occupancy percentage at entry time
+- Store pricing multiplier in parking session for use on exit event
+- Multiplier is determined by current garage occupancy and pricing strategy ranges
 
 ### Parked Rules
 
 - Match spot by exact coordinates (lat/lng must match precisely)
-- Calculate dynamic pricing based on garage occupancy at parked time
+- Assign spot to parking session (sets `spot_id`)
 - Increment sector `occupied_count` when spot is assigned
-- Set `base_price` using sector base price multiplied by dynamic pricing multiplier
-- Handle gracefully if spot not found (keep `spot_id = null`, allow EXIT, but session without sector still counts toward garage capacity)
+- No pricing calculation on parked event (pricing multiplier was already calculated and stored on entry event)
+- Handle gracefully if spot not found (keep `spot_id = null`, allow EXIT, but session still counts toward garage capacity)
 - Handle duplicate PARKED events idempotently (ignore if already has spot assigned)
 
 ### Exit Rules
 
 - First 30 minutes are free (configurable via `parking.fee.free-minutes`)
 - After 30 minutes, charge hourly rate (rounded up with CEILING - total minutes divided by 60, rounded up)
-- Calculate final price using `base_price` (already includes dynamic pricing multiplier from parked time)
+- Calculate final price using:
+  - Stored `pricingMultiplier` from entry event
+  - `basePrice` from spot's sector (or zero if no spot assigned)
+  - Formula: `effectivePrice = basePrice * pricingMultiplier`
+  - Apply fee calculation based on parking duration
 - Free spot if `spot_id` is set
 - Decrement sector `occupied_count` (if spot was assigned)
 - Record revenue (only completed sessions with `exit_time` and `final_price` are included)
@@ -262,6 +268,14 @@ Dynamic pricing multipliers based on occupancy at **entry time**:
 | 25-50%    | 1.00       | Normal pricing (0%) |
 | 50-75%    | 1.10       | High occupancy increase (+10%) |
 | 75-100%   | 1.25       | Full occupancy increase (+25%) |
+
+**Pricing Calculation Flow:**
+1. **ENTRY Event**: Multiplier is calculated based on garage occupancy percentage and stored in `parking_session.pricing_multiplier`
+2. **EXIT Event**: 
+   - Get `basePrice` from spot's sector (or zero if no spot was assigned)
+   - Calculate `effectivePrice = basePrice * pricingMultiplier`
+   - Apply fee calculation based on parking duration (free for first 30 minutes, then hourly rate rounded up)
+3. **No Spot Assigned**: If vehicle entered but never parked, uses zero basePrice (free parking) with multiplier applied
 
 ### Capacity Rules
 
@@ -310,6 +324,11 @@ The system is designed for future multi-garage support:
 
 - **Singular Table Names** - `garage`, `sector`, `parking_spot`, `parking_session`
 - **Normalized Schema** - `parking_spot` doesn't have `garage_id` (accessed via `sector.garage_id`)
+- **Parking Session Structure**:
+  - `pricing_multiplier` - Stored on entry event, used on exit event
+  - `spot_id` - Nullable, assigned on parked event
+  - No `sector_id` field (sector accessed via `spot.sector`)
+  - No `base_price` field (basePrice comes from spot's sector)
 - **Optimized Indexes** - Only essential indexes for query patterns
 - **Optimistic Locking** - `@Version` field on entities that need concurrency control
 
@@ -318,6 +337,32 @@ The system is designed for future multi-garage support:
 - **BigDecimal** - Currency (scale 2), coordinates (scale 8), all numeric calculations
 - **Instant** - Datetime fields (UTC by default for API responses)
 - **Timezone** - Application uses UTC-3 (America/Sao_Paulo) for business logic, UTC for API serialization
+
+### Transaction Configuration
+
+The application uses strategic transaction management for data consistency and concurrency control:
+
+- **Event Handlers** (`BaseEventHandler`):
+  - Isolation Level: `REPEATABLE_READ` - Ensures consistent capacity calculations and pricing multiplier determination during concurrent events
+  - Timeout: 30 seconds - Prevents long-running transactions
+  - Prevents non-repeatable reads and phantom reads when checking garage capacity
+
+- **Capacity Services** (`ParkingSpotService`, `SectorCapacityService`):
+  - Propagation: `MANDATORY` - Must run within existing transaction context
+  - Ensures atomicity of spot assignment and capacity updates
+  - Enforces transaction boundaries for data consistency
+
+- **Read-Only Operations**:
+  - `ParkingSessionService`, `GarageResolver`, `PricingService.getRevenue()`, `PricingStrategyResolver`
+  - Marked as `readOnly = true` for query optimization
+
+- **Locking Strategy**:
+  - **Optimistic Locking**: Used for spot lookup (`OPTIMISTIC` lock mode)
+  - **Version Fields**: `@Version` on `ParkingSession`, `ParkingSpot`, and `Sector` entities
+  - Detects concurrent modifications and prevents lost updates
+
+- **Initialization**:
+  - `GarageInitializationService`: `REPEATABLE_READ` isolation with 60-second timeout for external service calls
 
 ## Testing
 

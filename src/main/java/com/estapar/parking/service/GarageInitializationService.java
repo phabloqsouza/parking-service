@@ -22,12 +22,6 @@ public class GarageInitializationService {
     private final GarageRepository garageRepository;
     private final ParkingMapper parkingMapper;
     
-    /**
-     * Initializes the garage configuration from the simulator service.
-     * Uses REPEATABLE_READ isolation to prevent concurrent initialization issues.
-     * 
-     * @throws IllegalStateException if simulator returns null configuration
-     */
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 60)
     public void initializeFromSimulator() {
         logger.info("Starting garage initialization from simulator...");

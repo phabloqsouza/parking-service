@@ -65,12 +65,6 @@ public class ParkedEventHandler extends BaseEventHandler {
         return PARKED.equals(event.getEventType());
     }
     
-    /**
-     * Finds parking spot by exact coordinates.
-     * Uses precise matching (no tolerance) - coordinates must match exactly.
-     * If spot not found, session remains without spot_id,
-     * but still counts toward garage capacity.
-     */
     private Optional<ParkingSpot> findSpot(Garage garage, ParkedEventDto parkedEvent) {
         return spotRepository
                 .findByGarageIdAndLatitudeAndLongitude(
