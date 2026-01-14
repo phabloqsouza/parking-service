@@ -59,9 +59,8 @@ public class ExitEventHandler extends BaseEventHandler {
         session.setFinalPrice(finalPrice);
         sessionRepository.save(session);
         
-        long durationMinutes = Duration.between(session.getEntryTime(), exitEvent.getExitTime()).toMinutes();
         logger.info("Exit event processed: vehicle={}, finalPrice={},  exitTime={}",
-                exitEvent.getLicensePlate(), finalPrice, durationMinutes, exitEvent.getExitTime());
+                exitEvent.getLicensePlate(), finalPrice, exitEvent.getExitTime());
     }
 
     @Override

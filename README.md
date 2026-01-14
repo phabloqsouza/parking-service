@@ -162,7 +162,7 @@ Query revenue by date and sector.
 {
   "amount": 150.00,
   "currency": "BRL",
-  "timestamp": "2025-01-01T12:00:00.000Z"
+  "timestamp": "2025-01-01T12:00:00"
 }
 ```
 
