@@ -42,7 +42,7 @@ spring:
       write-durations-as-timestamps: false
     deserialization:
       adjust-dates-to-context-time-zone: false
-    time-zone: UTC
+    time-zone: America/Sao_Paulo
     default-property-inclusion: non_null
 
 parking:
@@ -52,18 +52,14 @@ parking:
       max-attempts: 5
       initial-interval-millis: 2000
       max-interval-millis: 32000
-      multiplier: 2.0
   fee:
     free-minutes: 30  # Number of free minutes before charging starts
   decimal:
     currency-scale: 2  # For currency (price) values
     percentage-scale: 2  # For percentage values
-    coordinate-scale: 8  # For lat/lng coordinates
     rounding-mode: HALF_UP  # Rounding mode for BigDecimal operations
-  datetime:
-    instant-format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"  # ISO 8601 format for Instant
-    date-format: "yyyy-MM-dd"  # Format for LocalDate
-    timezone: UTC  # Default timezone for API responses
+  application:
+    timezone: America/Sao_Paulo # UTC-3 (Brasilia, BR)
 
 springdoc:
   api-docs:
@@ -72,39 +68,6 @@ springdoc:
     enabled: true
     operationsSorter: method
     tagsSorter: alpha
-
-resilience4j:
-  circuitbreaker:
-    instances:
-      garage-simulator:
-        registerHealthIndicator: true
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        permittedNumberOfCallsInHalfOpenState: 3
-        automaticTransitionFromOpenToHalfOpenEnabled: true
-        waitDurationInOpenState: 10s
-        failureRateThreshold: 50
-        eventConsumerBufferSize: 10
-  retry:
-    instances:
-      garage-simulator:
-        maxAttempts: 5
-        waitDuration: 2s
-        enableExponentialBackoff: true
-        exponentialBackoffMultiplier: 2
-        retryExceptions:
-          - java.net.ConnectException
-          - java.net.SocketTimeoutException
-          - org.springframework.web.client.HttpServerErrorException
-  
-  spot:
-    coordinate-tolerance: 0.000001 # degrees, approximately 0.1 meters
-  
-  application:
-    timezone: America/Sao_Paulo # UTC-3 (Brasilia, BR)
-  
-  api:
-    use-local-timezone: false # Default to UTC for API responses (ISO 8601 with Z)
 
 management:
   endpoints:

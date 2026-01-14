@@ -1,7 +1,6 @@
 package com.estapar.parking.util;
 
 import com.estapar.parking.config.DecimalConfig;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,10 +21,6 @@ class BigDecimalUtilsTest {
 
     @InjectMocks
     private BigDecimalUtils bigDecimalUtils;
-
-    @BeforeEach
-    void setUp() {
-    }
 
     @Test
     void setCurrencyScale_ShouldSetScaleTo2() {

@@ -15,6 +15,5 @@ public class DecimalConfig {
     
     private int currencyScale = 2;
     private int percentageScale = 2;
-    private int coordinateScale = 8;
     private RoundingMode roundingMode = RoundingMode.HALF_UP;
 }

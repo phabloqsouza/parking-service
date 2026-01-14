@@ -8,13 +8,14 @@ import com.estapar.parking.infrastructure.persistence.repository.ParkingSessionR
 import com.estapar.parking.infrastructure.persistence.repository.SectorRepository;
 import com.estapar.parking.util.BigDecimalUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.UUID;
 
 import static com.estapar.parking.api.exception.ErrorMessages.SECTOR_NOT_FOUND;
@@ -24,6 +25,9 @@ import static com.estapar.parking.api.exception.ErrorMessages.notFound;
 @RequiredArgsConstructor
 public class PricingService {
 
+    @Value("${parking.application.timezone:America/Sao_Paulo}")
+    private String applicationTimezone;
+    
     private final BigDecimalUtils bigDecimalUtils;
     private final ParkingSessionRepository sessionRepository;
     private final SectorRepository sectorRepository;
@@ -37,7 +41,7 @@ public class PricingService {
         Sector sector = sectorRepository.findByGarageIdAndSectorCode(garage.getId(), sectorCode)
                 .orElseThrow(() -> notFound(SECTOR_NOT_FOUND, sectorCode));
         
-        Instant startOfDay = date.atStartOfDay().toInstant(ZoneOffset.UTC);
+        Instant startOfDay = date.atStartOfDay(ZoneId.of(applicationTimezone)).toInstant();
         
         BigDecimal totalRevenue = sessionRepository
                 .sumRevenueByGarageAndSectorAndDate(garage.getId(), sector.getId(), startOfDay);

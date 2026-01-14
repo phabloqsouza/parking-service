@@ -21,12 +21,6 @@ services:
     networks:
       - parking-network
 
-  simulator:
-    image: cfontes0estapar/garage-sim:1.0.0
-    container_name: parking-simulator
-    ports:
-      - "3000:3000"
-
   parking-service:
     build:
       context: .
@@ -34,12 +28,12 @@ services:
     container_name: parking-service
     ports:
       - "3003:3003"
+      - "3000:3000"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/parking_db?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: parking_user
       SPRING_DATASOURCE_PASSWORD: parking_password
-      PARKING_SIMULATOR_URL: http://host.docker.internal:3000
-      PARKING_INITIALIZATION_ENABLED: "false"  # Disable ApplicationRunner in Docker (use docker-entrypoint.sh)
+      PARKING_SIMULATOR_URL: http://localhost:3000
     depends_on:
       mysql:
         condition: service_healthy
@@ -51,6 +45,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+
+  simulator:
+    image: cfontes0estapar/garage-sim:1.0.0
+    container_name: parking-simulator
+    network_mode: "service:parking-service"
 
 networks:
   parking-network:

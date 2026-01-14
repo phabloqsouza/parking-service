@@ -15,55 +15,6 @@ A production-ready microservice for managing parking garage operations, includin
 - **Maven** - Build and dependency management
 - **Docker & Docker Compose** - Containerization
 
-## Architecture
-
-This microservice follows **Clean Architecture** principles with clear separation of concerns:
-
-```
-┌─────────────────────────────────────┐
-│         API Layer (REST)            │
-│  - Controllers (Webhook, Revenue)   │
-│  - DTOs & Mappers                   │
-└─────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────┐
-│      Application Services           │
-│  - ParkingEventService              │
-│  - GarageInitializationService      │
-│  - RevenueService                   │
-└─────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────┐
-│        Domain Layer                 │
-│  - Entities (Garage, Sector, etc.)  │
-│  - Services (PricingService, etc.)  │
-│  - Business Rules                   │
-└─────────────────────────────────────┘
-                ↓
-┌─────────────────────────────────────┐
-│    Infrastructure Layer             │
-│  - JPA Repositories                 │
-│  - External Clients (Feign)         │
-│  - Database                         │
-└─────────────────────────────────────┘
-```
-
-### Key Design Patterns
-
-- **Repository Pattern** - Data access abstraction
-- **Strategy Pattern** - Database-driven dynamic pricing
-- **Template Method Pattern** - Fee calculation algorithm
-- **Facade Pattern** - PricingService orchestrator
-- **Dependency Injection** - Spring IoC container
-
-### SOLID Principles
-
-- **Single Responsibility** - Each class has one reason to change
-- **Open/Closed** - Extensible pricing strategies without modification
-- **Liskov Substitution** - Proper inheritance hierarchies
-- **Interface Segregation** - Focused interfaces
-- **Dependency Inversion** - Depend on abstractions
-
 ## Features
 
 - ✅ Vehicle entry/exit management (ENTRY, PARKED, EXIT events)
@@ -287,113 +238,24 @@ Dynamic pricing multipliers based on occupancy at **entry time**:
 - Sector `occupied_count` is decremented on EXIT event (if spot was assigned)
 - Sessions that entered but never parked (no PARKED event) count toward garage capacity but not sector capacity
 
-## Assumptions and Design Decisions
-
-### Garage Identification
-
-**Current Implementation:**
-- All operations use the default garage (first garage created is set as `is_default = true`)
-- If `X-Garage-Id` header is missing, the system treats the request as belonging to the default garage
-
-**Future Implementation:**
-- Garage information can be passed via HTTP header `X-Garage-Id` (UUID)
-- System is prepared for multi-garage support with minimal refactoring
-
-**Alternative Approaches Considered:**
-- Path parameter: `/garages/{garageId}/webhook` (more RESTful but requires URL changes)
-- Request body field: Optional `garage_id` in webhook DTO (requires API contract changes)
-- JWT token claim: For authenticated multi-tenant scenarios (requires auth infrastructure)
-
-### Multi-Garage Support
-
-The system is designed for future multi-garage support:
-- `Garage` entity with `is_default` flag
-- `GarageResolver` service for garage resolution
-- All tables include `garage_id` foreign key
-- Horizontal scalability ready (stateless design, optimistic locking, UUIDs)
-
-### Scalability
-
-- **Stateless Design** - No session state stored in application memory
-- **Optimistic Locking** - Concurrency control using `@Version` on entities
-- **UUID Primary Keys** - Distributed system friendly
-- **Indexed Queries** - Optimized database access patterns
-- **Horizontal Scaling** - Can run multiple containers behind load balancer
-
-### Database Design
-
-- **Singular Table Names** - `garage`, `sector`, `parking_spot`, `parking_session`
-- **Normalized Schema** - `parking_spot` doesn't have `garage_id` (accessed via `sector.garage_id`)
-- **Parking Session Structure**:
-  - `pricing_multiplier` - Stored on entry event, used on exit event
-  - `spot_id` - Nullable, assigned on parked event
-  - No `sector_id` field (sector accessed via `spot.sector`)
-  - No `base_price` field (basePrice comes from spot's sector)
-- **Optimized Indexes** - Only essential indexes for query patterns
-- **Optimistic Locking** - `@Version` field on entities that need concurrency control
-
-### Precision Handling
-
-- **BigDecimal** - Currency (scale 2), coordinates (scale 8), all numeric calculations
-- **Instant** - Datetime fields (UTC by default for API responses)
-- **Timezone** - Application uses UTC-3 (America/Sao_Paulo) for business logic, UTC for API serialization
-
-### Transaction Configuration
-
-The application uses strategic transaction management for data consistency and concurrency control:
-
-- **Event Handlers** (`BaseEventHandler`):
-  - Isolation Level: `REPEATABLE_READ` - Ensures consistent capacity calculations and pricing multiplier determination during concurrent events
-  - Timeout: 30 seconds - Prevents long-running transactions
-  - Prevents non-repeatable reads and phantom reads when checking garage capacity
-
-- **Capacity Services** (`ParkingSpotService`, `SectorCapacityService`):
-  - Propagation: `MANDATORY` - Must run within existing transaction context
-  - Ensures atomicity of spot assignment and capacity updates
-  - Enforces transaction boundaries for data consistency
-
-- **Read-Only Operations**:
-  - `ParkingSessionService`, `GarageResolver`, `PricingService.getRevenue()`, `PricingStrategyResolver`
-  - Marked as `readOnly = true` for query optimization
-
-- **Locking Strategy**:
-  - **Optimistic Locking**: Used for spot lookup (`OPTIMISTIC` lock mode)
-  - **Version Fields**: `@Version` on `ParkingSession`, `ParkingSpot`, and `Sector` entities
-  - Detects concurrent modifications and prevents lost updates
-
-- **Initialization**:
-  - `GarageInitializationService`: `REPEATABLE_READ` isolation with 60-second timeout for external service calls
-
 ## Testing
 
-### Unit Tests
-
-Run unit tests (default profile):
+Run unit tests:
 ```bash
 mvn test
 ```
 
-Or explicitly:
-```bash
-mvn test -Punit-tests
-```
+## Design Decisions
 
-  -Dspring.datasource.username=parking_user_test \
-  -Dspring.datasource.password=parking_password_test \
-  -Dparking.simulator.url=http://localhost:8080 \
-  -Dparking.service.url=http://localhost:3004
-```
-
-### Unit Tests
-
-- Domain services (PricingService, SpotLocationMatcher)
-- Application services
-- BigDecimal precision validation
+- **Stateless Design** - No session state stored in application memory
+- **Optimistic Locking** - Concurrency control using `@Version` on entities
+- **UUID Primary Keys** - Distributed system friendly
+- **BigDecimal** - Currency (scale 2), coordinates (scale 8)
+- **Transaction Management** - `REPEATABLE_READ` isolation for event handlers, `MANDATORY` propagation for capacity services
+- **Multi-Garage Ready** - System prepared for multi-garage support (currently uses default garage)
 
 
 ## Configuration
-
-### Application Properties
 
 Key configuration in `application.yml`:
 
@@ -410,120 +272,20 @@ spring:
 parking:
   simulator:
     url: http://localhost:8080
-    retry:
-      max-attempts: 5
-      initial-interval-millis: 2000
-      max-interval-millis: 32000
-  
-  spot:
-    coordinate-tolerance: 0.000001  # degrees
-  
-  application:
-    timezone: America/Sao_Paulo  # UTC-3
-  
-  api:
-    use-local-timezone: false  # UTC for API responses
+  fee:
+    free-minutes: 30
 ```
 
-### Environment Variables
+Environment variables can override database configuration:
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
 
-Database configuration can be overridden using environment variables (best practice for production):
+## Next Steps
 
-**Database Configuration:**
-- `SPRING_DATASOURCE_URL` - Database connection URL (default: `jdbc:mysql://localhost:3306/parking_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true`)
-- `SPRING_DATASOURCE_USERNAME` - Database username (default: `parking_user`)
-- `SPRING_DATASOURCE_PASSWORD` - Database password (default: `parking_password`)
-
-**Example (Linux/Mac):**
-```bash
-export SPRING_DATASOURCE_URL=jdbc:mysql://production-db:3306/parking_db
-export SPRING_DATASOURCE_USERNAME=prod_user
-export SPRING_DATASOURCE_PASSWORD=prod_password
-mvn spring-boot:run
-```
-
-**Example (Windows PowerShell):**
-```powershell
-$env:SPRING_DATASOURCE_URL="jdbc:mysql://production-db:3306/parking_db"
-$env:SPRING_DATASOURCE_USERNAME="prod_user"
-$env:SPRING_DATASOURCE_PASSWORD="prod_password"
-mvn spring-boot:run
-```
-
-**For Docker Compose:**
-Environment variables can be set in `docker-compose.yml` or a `.env` file for different environments.
-
-**For Manual Flyway Migrations (Maven Plugin):**
-```bash
-mvn flyway:migrate \
-  -Dflyway.url=${SPRING_DATASOURCE_URL} \
-  -Dflyway.user=${SPRING_DATASOURCE_USERNAME} \
-  -Dflyway.password=${SPRING_DATASOURCE_PASSWORD}
-```
-
-## Project Structure
-
-```
-src/
-├── main/
-│   ├── java/com/estapar/parking/
-│   │   ├── domain/          # Domain entities and services
-│   │   ├── application/     # Application services
-│   │   ├── infrastructure/  # JPA repositories, external clients
-│   │   ├── api/             # REST controllers, DTOs
-│   │   └── config/          # Configuration classes
-│   └── resources/
-│       ├── application.yml
-│       └── db/migration/    # Flyway migrations
-├── test/
-│   └── java/                # Test classes
-├── docker/
-│   └── docker-entrypoint.sh
-├── Dockerfile
-├── docker-compose.yml
-└── README.md
-```
-
-## Troubleshooting
-
-### Application won't start
-
-- Check MySQL is running and accessible
-- Verify database credentials in `application.yml` or environment variables (`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`)
-- Check simulator is running on port 8080
-- Review application logs for errors
-
-### Garage initialization fails
-
-- Verify simulator is accessible at configured URL
-- Check network connectivity
-- Review Feign client retry logs
-- Manually trigger initialization: `POST /internal/initialize`
-
-### Database connection issues
-
-- Verify MySQL is running: `docker ps`
-- Check connection string in `application.yml` or environment variables
-- Verify database exists: `mysql -u parking_user -p` (or use your configured credentials)
-- Check Flyway migration status in logs
-- Ensure environment variables are properly set (if overriding defaults)
-
-## Future Enhancements
-
-- [ ] Authentication and authorization (JWT/OAuth2)
-- [ ] Multi-garage support with garage selection UI
-- [ ] Real-time capacity monitoring via WebSocket
-- [ ] Advanced reporting and analytics
-- [ ] Payment integration
-- [ ] Mobile app API
-- [ ] Event sourcing for audit trail
-- [ ] Caching layer (Redis) for frequently accessed data
-- [ ] Coordinate tolerance-based spot matching - Currently requires exact coordinate match. Future: Add configurable tolerance (e.g., 0.000001 degrees ≈ 0.1 meters) to handle GPS drift and coordinate precision variations.
+- Add `Hibernate Envers` for auditing purposes
+- Implement component tests with cucumber
 
 ## License
 
 This project is part of a technical evaluation for Estapar.
-
-## Contact
-
-For questions or issues, please contact the development team.

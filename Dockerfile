@@ -19,12 +19,8 @@ WORKDIR /app
 # Copy built JAR
 COPY --from=build /app/target/parking-service-*.jar app.jar
 
-# Install curl and wait-for-it for health checks
-RUN apk add --no-cache curl bash
-
-# Copy docker-entrypoint script
-COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Install curl for health checks
+RUN apk add --no-cache curl
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
@@ -32,4 +28,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
 
 EXPOSE 3003
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -63,8 +63,8 @@ public class EntryEventHandler extends BaseEventHandler {
         
         sessionRepository.save(session);
 
-        logger.info("Entry event processed: vehicle={}, multiplier={}", 
-                   entryEvent.getLicensePlate(), strategy.getMultiplier());
+        logger.info("Entry event processed: vehicle={}, multiplier={}, entryTime={}",
+                   entryEvent.getLicensePlate(), strategy.getMultiplier(), entryEvent.getEntryTime());
     }
 
     @Override
