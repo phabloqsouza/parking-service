@@ -15,7 +15,17 @@ import java.util.UUID;
 @Repository
 public interface ParkingSpotRepository extends JpaRepository<ParkingSpot, UUID> {
     
-    @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
+    /**
+     * Finds a parking spot by exact coordinates within a garage.
+     * Uses OPTIMISTIC locking to prevent concurrent spot assignment.
+     * The version field will be checked on update to detect concurrent modifications.
+     * 
+     * @param garageId the garage ID
+     * @param latitude the spot latitude (exact match)
+     * @param longitude the spot longitude (exact match)
+     * @return the parking spot if found
+     */
+    @Lock(LockModeType.OPTIMISTIC)
     @Query("SELECT ps FROM ParkingSpot ps " +
             "INNER JOIN FETCH ps.sector sector " +
             "WHERE ps.sector.garage.id = :garageId " +

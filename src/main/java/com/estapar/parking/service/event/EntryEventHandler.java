@@ -9,6 +9,8 @@ import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
 import com.estapar.parking.infrastructure.persistence.repository.GarageRepository;
 import com.estapar.parking.infrastructure.persistence.repository.ParkingSessionRepository;
 import com.estapar.parking.service.ParkingSessionService;
+import com.estapar.parking.service.PricingStrategyResolver;
+import com.estapar.parking.util.BigDecimalUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +20,7 @@ import static com.estapar.parking.api.dto.EventType.ENTRY;
 import static com.estapar.parking.api.exception.ErrorMessages.GARAGE_FULL;
 import static com.estapar.parking.api.exception.ErrorMessages.VEHICLE_ALREADY_HAS_ACTIVE_SESSION;
 import static com.estapar.parking.api.exception.ErrorMessages.conflict;
+import static java.math.BigDecimal.valueOf;
 
 @Component
 @RequiredArgsConstructor
@@ -29,6 +32,8 @@ public class EntryEventHandler extends BaseEventHandler {
     private final ParkingSessionRepository sessionRepository;
     private final ParkingMapper parkingMapper;
     private final ParkingSessionService parkingSessionService;
+    private final PricingStrategyResolver pricingStrategyResolver;
+    private final BigDecimalUtils bigDecimalUtils;
     
     @Override
     public void handle(Garage garage, WebhookEventDto event) {
@@ -42,14 +47,24 @@ public class EntryEventHandler extends BaseEventHandler {
             throw conflict(VEHICLE_ALREADY_HAS_ACTIVE_SESSION, entryEvent.getLicensePlate());
         }
 
+        long occupied = garageRepository.calcOccupancy(garage.getId());
+        var occupancyPercentage = bigDecimalUtils.calculatePercentage(
+                valueOf(occupied), 
+                valueOf(garage.getMaxCapacity()));
+        
+        var strategy = pricingStrategyResolver.findStrategy(occupancyPercentage);
+
         ParkingSession session = parkingMapper.toParkingSession(
                 entryEvent.getLicensePlate(),
                 entryEvent.getEntryTime(),
-                garage
+                garage,
+                strategy.getMultiplier()
         );
+        
         sessionRepository.save(session);
 
-        logger.info("Entry event processed: vehicle={}", entryEvent.getLicensePlate());
+        logger.info("Entry event processed: vehicle={}, multiplier={}", 
+                   entryEvent.getLicensePlate(), strategy.getMultiplier());
     }
 
     @Override

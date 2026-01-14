@@ -12,7 +12,6 @@ import com.estapar.parking.infrastructure.persistence.repository.ParkingSessionR
 import com.estapar.parking.infrastructure.persistence.repository.ParkingSpotRepository;
 import com.estapar.parking.service.ParkingSessionService;
 import com.estapar.parking.service.ParkingSpotService;
-import com.estapar.parking.service.PricingService;
 import com.estapar.parking.service.SectorCapacityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -46,9 +46,6 @@ class ParkedEventHandlerTest {
 
     @Mock
     private ParkingSpotService parkingSpotService;
-
-    @Mock
-    private PricingService pricingService;
 
     @Mock
     private SectorCapacityService sectorCapacityService;
@@ -94,14 +91,11 @@ class ParkedEventHandlerTest {
     }
 
     @Test
-    void handle_WithSpotFound_ShouldAssignSpotAndCalculatePrice() {
-        BigDecimal basePrice = new BigDecimal("15.00");
-
+    void handle_WithSpotFound_ShouldAssignSpot() {
         when(parkingSessionService.findActiveSession(garage, licensePlate)).thenReturn(session);
         when(spotRepository.findByGarageIdAndLatitudeAndLongitude(
                 garage.getId(), parkedEvent.getLat(), parkedEvent.getLng()))
                 .thenReturn(Optional.of(spot));
-        when(pricingService.calculateDynamicPrice(sector)).thenReturn(basePrice);
         when(sessionRepository.save(session)).thenReturn(session);
 
         parkedEventHandler.handle(garage, parkedEvent);
@@ -110,10 +104,8 @@ class ParkedEventHandlerTest {
         verify(spotRepository).findByGarageIdAndLatitudeAndLongitude(
                 garage.getId(), parkedEvent.getLat(), parkedEvent.getLng());
         verify(parkingSpotService).assignSpot(session, spot);
-        verify(pricingService).calculateDynamicPrice(sector);
         verify(sectorCapacityService).incrementCapacity(sector);
         verify(sessionRepository).save(session);
-        assertThat(session.getBasePrice()).isEqualTo(basePrice);
     }
 
     @Test
@@ -126,7 +118,7 @@ class ParkedEventHandlerTest {
                 .thenReturn(Optional.of(spot));
 
         assertThatThrownBy(() -> parkedEventHandler.handle(garage, parkedEvent))
-                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+                .isInstanceOf(ResponseStatusException.class);
         verify(parkingSessionService).findActiveSession(garage, licensePlate);
         verify(spotRepository).findByGarageIdAndLatitudeAndLongitude(
                 garage.getId(), parkedEvent.getLat(), parkedEvent.getLng());

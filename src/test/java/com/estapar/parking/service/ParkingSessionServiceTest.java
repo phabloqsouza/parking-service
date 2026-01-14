@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -65,7 +66,7 @@ class ParkingSessionServiceTest {
                 garage.getId(), licensePlate)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> parkingSessionService.findActiveSession(garage, licensePlate))
-                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+                .isInstanceOf(ResponseStatusException.class);
         verify(sessionRepository).findByGarageIdAndVehicleLicensePlateAndExitTimeIsNull(
                 garage.getId(), licensePlate);
     }

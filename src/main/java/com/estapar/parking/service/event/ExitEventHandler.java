@@ -8,7 +8,8 @@ import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
 import com.estapar.parking.infrastructure.persistence.repository.ParkingSessionRepository;
 import com.estapar.parking.service.ParkingSessionService;
 import com.estapar.parking.service.ParkingSpotService;
-import com.estapar.parking.service.PricingService;
+import com.estapar.parking.service.ParkingFeeCalculator;
+import com.estapar.parking.util.BigDecimalUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,8 @@ public class ExitEventHandler extends BaseEventHandler {
     private final ParkingSessionRepository sessionRepository;
     private final ParkingSessionService parkingSessionService;
     private final ParkingSpotService parkingSpotService;
-    private final PricingService pricingService;
+    private final ParkingFeeCalculator feeCalculator;
+    private final BigDecimalUtils bigDecimalUtils;
     
     @Override
     public void handle(Garage garage, WebhookEventDto event) {
@@ -37,7 +39,20 @@ public class ExitEventHandler extends BaseEventHandler {
         ParkingSession session = parkingSessionService.findActiveSession(garage, exitEvent.getLicensePlate());
         session.setExitTime(exitEvent.getExitTime());
         
-        BigDecimal finalPrice = pricingService.calculateFee(session);
+        BigDecimal multiplier = session.getPricingMultiplier();
+        BigDecimal basePrice;
+        if (session.getSpot() != null) {
+            basePrice = session.getSpot().getSector().getBasePrice();
+        } else {
+            basePrice = bigDecimalUtils.zeroWithCurrencyScale();
+        }
+        
+        BigDecimal effectivePrice = bigDecimalUtils.multiplyAndSetCurrencyScale(basePrice, multiplier);
+        BigDecimal finalPrice = feeCalculator.calculateFee(
+                session.getEntryTime(), 
+                session.getExitTime(), 
+                effectivePrice
+        );
         
         parkingSpotService.freeSpot(session);
         

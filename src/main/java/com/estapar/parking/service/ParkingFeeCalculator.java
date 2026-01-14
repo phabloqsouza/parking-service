@@ -29,11 +29,7 @@ public class ParkingFeeCalculator {
         Duration duration = Duration.between(entryTime, exitTime);
         long totalMinutes = duration.toMinutes();
 
-        if (totalMinutes <= freeMinutes) {
-            return bigDecimalUtils.zeroWithCurrencyScale();
-        }
-
-        if (basePrice == null) {
+        if (totalMinutes <= freeMinutes || basePrice == null) {
             return bigDecimalUtils.zeroWithCurrencyScale();
         }
 

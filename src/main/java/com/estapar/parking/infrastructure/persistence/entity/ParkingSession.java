@@ -36,10 +36,6 @@ public class ParkingSession {
     @JoinColumn(name = "spot_id")
     private ParkingSpot spot;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sector_id")
-    private Sector sector;
-    
     @Column(nullable = false, length = 20)
     private String vehicleLicensePlate;
     
@@ -49,8 +45,8 @@ public class ParkingSession {
     @Column
     private Instant exitTime;
     
-    @Column(nullable = true, precision = 19, scale = 2)
-    private BigDecimal basePrice;
+    @Column(precision = 5, scale = 2)
+    private BigDecimal pricingMultiplier;
     
     @Column(precision = 19, scale = 2)
     private BigDecimal finalPrice;

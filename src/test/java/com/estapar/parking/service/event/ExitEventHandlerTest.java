@@ -7,10 +7,12 @@ import com.estapar.parking.api.dto.WebhookEventDto;
 import com.estapar.parking.infrastructure.persistence.entity.Garage;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
 import com.estapar.parking.infrastructure.persistence.entity.ParkingSpot;
+import com.estapar.parking.infrastructure.persistence.entity.Sector;
 import com.estapar.parking.infrastructure.persistence.repository.ParkingSessionRepository;
+import com.estapar.parking.service.ParkingFeeCalculator;
 import com.estapar.parking.service.ParkingSessionService;
 import com.estapar.parking.service.ParkingSpotService;
-import com.estapar.parking.service.PricingService;
+import com.estapar.parking.util.BigDecimalUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +42,10 @@ class ExitEventHandlerTest {
     private ParkingSpotService parkingSpotService;
 
     @Mock
-    private PricingService pricingService;
+    private ParkingFeeCalculator feeCalculator;
+
+    @Mock
+    private BigDecimalUtils bigDecimalUtils;
 
     @InjectMocks
     private ExitEventHandler exitEventHandler;
@@ -49,6 +54,7 @@ class ExitEventHandlerTest {
     private ExitEventDto exitEvent;
     private ParkingSession session;
     private ParkingSpot spot;
+    private Sector sector;
     private String licensePlate;
     private Instant exitTime;
 
@@ -65,23 +71,31 @@ class ExitEventHandlerTest {
         exitEvent.setLicensePlate(licensePlate);
         exitEvent.setExitTime(exitTime);
 
+        sector = new Sector();
+        sector.setId(UUID.randomUUID());
+        sector.setBasePrice(new BigDecimal("10.00"));
+
         spot = new ParkingSpot();
         spot.setId(UUID.randomUUID());
+        spot.setSector(sector);
 
         session = new ParkingSession();
         session.setId(UUID.randomUUID());
         session.setEntryTime(Instant.parse("2025-01-01T10:00:00.000Z"));
         session.setExitTime(null);
-        session.setBasePrice(new BigDecimal("10.00"));
+        session.setPricingMultiplier(new BigDecimal("1.00"));
         session.setSpot(spot);
     }
 
     @Test
     void handle_WithActiveSession_ShouldCalculateFeeAndSave() {
+        BigDecimal effectivePrice = new BigDecimal("10.00");
         BigDecimal finalPrice = new BigDecimal("20.00");
 
         when(parkingSessionService.findActiveSession(garage, licensePlate)).thenReturn(session);
-        when(pricingService.calculateFee(session)).thenReturn(finalPrice);
+        when(bigDecimalUtils.multiplyAndSetCurrencyScale(sector.getBasePrice(), session.getPricingMultiplier()))
+                .thenReturn(effectivePrice);
+        when(feeCalculator.calculateFee(session.getEntryTime(), exitTime, effectivePrice)).thenReturn(finalPrice);
         when(sessionRepository.save(session)).thenReturn(session);
 
         exitEventHandler.handle(garage, exitEvent);
@@ -89,44 +103,37 @@ class ExitEventHandlerTest {
         assertThat(session.getExitTime()).isEqualTo(exitTime);
         assertThat(session.getFinalPrice()).isEqualTo(finalPrice);
         verify(parkingSessionService).findActiveSession(garage, licensePlate);
-        verify(pricingService).calculateFee(session);
+        verify(bigDecimalUtils).multiplyAndSetCurrencyScale(sector.getBasePrice(), session.getPricingMultiplier());
+        verify(feeCalculator).calculateFee(session.getEntryTime(), exitTime, effectivePrice);
         verify(parkingSpotService).freeSpot(session);
         verify(sessionRepository).save(session);
     }
 
     @Test
-    void handle_WithNullBasePrice_ShouldStillCalculateFee() {
-        BigDecimal finalPrice = BigDecimal.ZERO;
-        session.setBasePrice(null);
-
-        when(parkingSessionService.findActiveSession(garage, licensePlate)).thenReturn(session);
-        when(pricingService.calculateFee(session)).thenReturn(finalPrice);
-        when(sessionRepository.save(session)).thenReturn(session);
-
-        exitEventHandler.handle(garage, exitEvent);
-
-        assertThat(session.getExitTime()).isEqualTo(exitTime);
-        assertThat(session.getFinalPrice()).isEqualTo(finalPrice);
-        verify(parkingSessionService).findActiveSession(garage, licensePlate);
-        verify(pricingService).calculateFee(session);
-        verify(parkingSpotService).freeSpot(session);
-        verify(sessionRepository).save(session);
-    }
-
-    @Test
-    void handle_WithNoSpotAssigned_ShouldStillProcessExit() {
+    void handle_WithNoSpotAssigned_ShouldUseZeroBasePrice() {
         session.setSpot(null);
-        BigDecimal finalPrice = new BigDecimal("10.00");
+        BigDecimal effectivePrice = BigDecimal.ZERO;
+        BigDecimal finalPrice = BigDecimal.ZERO;
 
         when(parkingSessionService.findActiveSession(garage, licensePlate)).thenReturn(session);
-        when(pricingService.calculateFee(session)).thenReturn(finalPrice);
+        when(bigDecimalUtils.zeroWithCurrencyScale()).thenReturn(effectivePrice);
+        when(bigDecimalUtils.multiplyAndSetCurrencyScale(effectivePrice, session.getPricingMultiplier()))
+                .thenReturn(effectivePrice);
+        when(feeCalculator.calculateFee(session.getEntryTime(), exitTime, effectivePrice)).thenReturn(finalPrice);
         when(sessionRepository.save(session)).thenReturn(session);
 
         exitEventHandler.handle(garage, exitEvent);
 
+        assertThat(session.getExitTime()).isEqualTo(exitTime);
+        assertThat(session.getFinalPrice()).isEqualTo(finalPrice);
+        verify(parkingSessionService).findActiveSession(garage, licensePlate);
+        verify(bigDecimalUtils).zeroWithCurrencyScale();
+        verify(bigDecimalUtils).multiplyAndSetCurrencyScale(effectivePrice, session.getPricingMultiplier());
+        verify(feeCalculator).calculateFee(session.getEntryTime(), exitTime, effectivePrice);
         verify(parkingSpotService).freeSpot(session);
         verify(sessionRepository).save(session);
     }
+
 
     @Test
     void handle_WithInvalidEventType_ShouldThrowException() {

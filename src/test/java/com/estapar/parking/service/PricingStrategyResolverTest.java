@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -59,7 +60,7 @@ class PricingStrategyResolverTest {
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> resolver.findStrategy(occupancyPercentage))
-                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+                .isInstanceOf(ResponseStatusException.class);
         verify(repository).findActiveStrategyByOccupancyRange(occupancyPercentage);
     }
 }

@@ -3,10 +3,7 @@ package com.estapar.parking.service;
 import com.estapar.parking.api.dto.RevenueResponseDto;
 import com.estapar.parking.api.mapper.ParkingMapper;
 import com.estapar.parking.infrastructure.persistence.entity.Garage;
-import com.estapar.parking.infrastructure.persistence.entity.ParkingSession;
-import com.estapar.parking.infrastructure.persistence.entity.PricingStrategy;
 import com.estapar.parking.infrastructure.persistence.entity.Sector;
-import com.estapar.parking.infrastructure.persistence.repository.GarageRepository;
 import com.estapar.parking.infrastructure.persistence.repository.ParkingSessionRepository;
 import com.estapar.parking.infrastructure.persistence.repository.SectorRepository;
 import com.estapar.parking.util.BigDecimalUtils;
@@ -16,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,19 +24,11 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PricingServiceTest {
-
-    @Mock
-    private ParkingFeeCalculator feeCalculator;
-
-    @Mock
-    private PricingStrategyResolver strategyResolver;
 
     @Mock
     private BigDecimalUtils bigDecimalUtils;
@@ -48,9 +38,6 @@ class PricingServiceTest {
 
     @Mock
     private SectorRepository sectorRepository;
-
-    @Mock
-    private GarageRepository garageRepository;
 
     @Mock
     private GarageResolver garageResolver;
@@ -63,64 +50,15 @@ class PricingServiceTest {
 
     private Garage garage;
     private Sector sector;
-    private PricingStrategy pricingStrategy;
-    private ParkingSession session;
 
     @BeforeEach
     void setUp() {
         garage = new Garage();
         garage.setId(UUID.randomUUID());
-        garage.setMaxCapacity(100);
 
         sector = new Sector();
         sector.setId(UUID.randomUUID());
         sector.setGarage(garage);
-        sector.setBasePrice(new BigDecimal("10.00"));
-        sector.setMaxCapacity(50);
-
-        pricingStrategy = new PricingStrategy();
-        pricingStrategy.setMultiplier(new BigDecimal("1.5"));
-
-        session = new ParkingSession();
-        session.setId(UUID.randomUUID());
-        session.setEntryTime(Instant.parse("2025-01-01T10:00:00.000Z"));
-        session.setExitTime(Instant.parse("2025-01-01T12:00:00.000Z"));
-        session.setBasePrice(new BigDecimal("10.00"));
-    }
-
-    @Test
-    void calculateDynamicPrice_ShouldCalculateCorrectly() {
-        long occupied = 50L;
-        BigDecimal occupancyPercentage = new BigDecimal("50.00");
-        BigDecimal expectedPrice = new BigDecimal("15.00");
-
-        when(garageRepository.calcOccupancy(garage.getId())).thenReturn(occupied);
-        when(bigDecimalUtils.calculatePercentage(any(BigDecimal.class), any(BigDecimal.class)))
-                .thenReturn(occupancyPercentage);
-        when(strategyResolver.findStrategy(occupancyPercentage)).thenReturn(pricingStrategy);
-        when(bigDecimalUtils.multiplyAndSetCurrencyScale(any(BigDecimal.class), any(BigDecimal.class)))
-                .thenReturn(expectedPrice);
-
-        BigDecimal result = pricingService.calculateDynamicPrice(sector);
-
-        assertThat(result).isEqualByComparingTo(expectedPrice);
-        verify(garageRepository).calcOccupancy(garage.getId());
-        verify(bigDecimalUtils).calculatePercentage(any(BigDecimal.class), any(BigDecimal.class));
-        verify(strategyResolver).findStrategy(occupancyPercentage);
-        verify(bigDecimalUtils).multiplyAndSetCurrencyScale(sector.getBasePrice(), pricingStrategy.getMultiplier());
-    }
-
-    @Test
-    void calculateFee_ShouldDelegateToFeeCalculator() {
-        BigDecimal expectedFee = new BigDecimal("20.00");
-
-        when(feeCalculator.calculateFee(session.getEntryTime(), session.getExitTime(), session.getBasePrice()))
-                .thenReturn(expectedFee);
-
-        BigDecimal result = pricingService.calculateFee(session);
-
-        assertThat(result).isEqualByComparingTo(expectedFee);
-        verify(feeCalculator).calculateFee(session.getEntryTime(), session.getExitTime(), session.getBasePrice());
     }
 
     @Test
@@ -195,7 +133,7 @@ class PricingServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> pricingService.getRevenue(garageId, date, sectorCode))
-                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+                .isInstanceOf(ResponseStatusException.class);
         verify(garageResolver).getGarage(garageId);
         verify(sectorRepository).findByGarageIdAndSectorCode(garage.getId(), sectorCode);
     }

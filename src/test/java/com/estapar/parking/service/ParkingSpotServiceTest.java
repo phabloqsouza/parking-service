@@ -52,7 +52,6 @@ class ParkingSpotServiceTest {
         session = new ParkingSession();
         session.setId(UUID.randomUUID());
         session.setSpot(null);
-        session.setSector(null);
     }
 
     @Test
@@ -63,14 +62,12 @@ class ParkingSpotServiceTest {
 
         assertThat(spot.getIsOccupied()).isTrue();
         assertThat(session.getSpot()).isEqualTo(spot);
-        assertThat(session.getSector()).isEqualTo(sector);
         verify(spotRepository).save(spot);
     }
 
     @Test
     void freeSpot_WithSpotAssigned_ShouldFreeSpotAndDecrementCapacity() {
         session.setSpot(spot);
-        session.setSector(sector);
         when(spotRepository.save(spot)).thenReturn(spot);
 
         parkingSpotService.freeSpot(session);
@@ -83,7 +80,6 @@ class ParkingSpotServiceTest {
     @Test
     void freeSpot_WithNoSpotAssigned_ShouldDoNothing() {
         session.setSpot(null);
-        session.setSector(null);
 
         parkingSpotService.freeSpot(session);
 

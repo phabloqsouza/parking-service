@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -73,7 +74,7 @@ class GarageResolverTest {
         when(garageRepository.findById(garageId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> garageResolver.getGarage(garageId))
-                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+                .isInstanceOf(ResponseStatusException.class);
         verify(garageRepository).findById(garageId);
     }
 
@@ -92,7 +93,7 @@ class GarageResolverTest {
         when(garageRepository.findByIsDefaultTrue()).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> garageResolver.getDefaultGarage())
-                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+                .isInstanceOf(ResponseStatusException.class);
         verify(garageRepository).findByIsDefaultTrue();
     }
 }
