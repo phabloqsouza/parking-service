@@ -165,10 +165,11 @@ Accepts vehicle events (ENTRY, PARKED, EXIT) from the simulator.
 {
   "license_plate": "ABC1234",
   "entry_time": "2025-01-01T12:00:00.000Z",
-  "event": "ENTRY",
-  "sector": "A"
+  "event": "ENTRY"
 }
 ```
+
+**Note:** Sector is not specified on ENTRY event. It is determined when the vehicle parks (PARKED event) based on the matched spot's sector.
 
 **PARKED Event:**
 ```json
@@ -228,26 +229,28 @@ Manually trigger garage initialization from simulator (used by Docker entrypoint
 
 ### Entry Rules
 
-- Check sector availability (not at 100% capacity)
-- Reserve capacity (increment `occupied_count`) using optimistic locking
-- Calculate dynamic pricing based on current occupancy
-- Create parking session with `spot_id = null` (assigned on PARKED event)
+- Check garage availability (not at 100% garage capacity)
+- Capacity is conceptually reserved via garage occupancy calculation (sessions without sector count toward garage capacity)
+- Create parking session with `spot_id = null` and `sector_id = null` (assigned on PARKED event)
+- No dynamic pricing calculation at entry time
 
 ### Parked Rules
 
-- Match spot by exact coordinates
-- Handle gracefully if spot not found (keep `spot_id = null`, allow EXIT)
-- Handle duplicate PARKED events idempotently
-- Capacity already counted on ENTRY (not incremented on PARKED)
+- Match spot by exact coordinates (lat/lng must match precisely)
+- Calculate dynamic pricing based on garage occupancy at parked time
+- Increment sector `occupied_count` when spot is assigned
+- Set `base_price` using sector base price multiplied by dynamic pricing multiplier
+- Handle gracefully if spot not found (keep `spot_id = null`, allow EXIT, but session without sector still counts toward garage capacity)
+- Handle duplicate PARKED events idempotently (ignore if already has spot assigned)
 
 ### Exit Rules
 
-- First 30 minutes are free
-- After 30 minutes, charge hourly rate (rounded up with CEILING)
-- Calculate final price using base price with dynamic pricing multiplier (from entry time)
+- First 30 minutes are free (configurable via `parking.fee.free-minutes`)
+- After 30 minutes, charge hourly rate (rounded up with CEILING - total minutes divided by 60, rounded up)
+- Calculate final price using `base_price` (already includes dynamic pricing multiplier from parked time)
 - Free spot if `spot_id` is set
-- Decrement sector `occupied_count`
-- Record revenue
+- Decrement sector `occupied_count` (if spot was assigned)
+- Record revenue (only completed sessions with `exit_time` and `final_price` are included)
 
 ### Pricing Rules
 
@@ -262,10 +265,13 @@ Dynamic pricing multipliers based on occupancy at **entry time**:
 
 ### Capacity Rules
 
-- Sector closes at 100% capacity (no new entries allowed)
-- Capacity is incremented on ENTRY event (not on PARKED)
-- PARKED events (spot not found, already parked) still count toward capacity
-- Capacity is decremented on EXIT event
+- Garage closes at 100% garage capacity (no new entries allowed)
+- Capacity is tracked at two levels:
+  - **Garage level**: Counts sessions without sector (entered but not parked) + sum of all sector `occupied_count`
+  - **Sector level**: `occupied_count` is incremented when spot is assigned (on PARKED event)
+- If spot is not found on PARKED event, session remains without sector and still counts toward garage capacity
+- Sector `occupied_count` is decremented on EXIT event (if spot was assigned)
+- Sessions that entered but never parked (no PARKED event) count toward garage capacity but not sector capacity
 
 ## Assumptions and Design Decisions
 

@@ -6,7 +6,6 @@ import org.springframework.web.server.ResponseStatusException;
 public final class ErrorMessages {
     
     private ErrorMessages() {
-        // Utility class
     }
     
     public static final String VEHICLE_ALREADY_HAS_ACTIVE_SESSION = "Vehicle %s already has an active parking session";
@@ -18,7 +17,6 @@ public final class ErrorMessages {
     public static final String SECTOR_NOT_FOUND = "Sector not found: %s";
     public static final String PRICING_STRATEGY_NOT_FOUND = "No active pricing strategy found for occupancy percentage: %.2f";
     
-    // Exception factory methods for common patterns
     public static ResponseStatusException notFound(String message, Object... args) {
         return new ResponseStatusException(HttpStatus.NOT_FOUND, String.format(message, args));
     }

@@ -25,13 +25,13 @@ class BigDecimalUtilsTest {
 
     @BeforeEach
     void setUp() {
-        when(decimalConfig.getCurrencyScale()).thenReturn(2);
-        when(decimalConfig.getPercentageScale()).thenReturn(2);
-        when(decimalConfig.getRoundingMode()).thenReturn(RoundingMode.HALF_UP);
     }
 
     @Test
     void setCurrencyScale_ShouldSetScaleTo2() {
+        when(decimalConfig.getCurrencyScale()).thenReturn(2);
+        when(decimalConfig.getRoundingMode()).thenReturn(RoundingMode.HALF_UP);
+
         BigDecimal value = new BigDecimal("10.555");
         BigDecimal result = bigDecimalUtils.setCurrencyScale(value);
 
@@ -41,6 +41,9 @@ class BigDecimalUtilsTest {
 
     @Test
     void calculatePercentage_ShouldCalculatePercentageCorrectly() {
+        when(decimalConfig.getPercentageScale()).thenReturn(2);
+        when(decimalConfig.getRoundingMode()).thenReturn(RoundingMode.HALF_UP);
+
         BigDecimal dividend = new BigDecimal("25");
         BigDecimal divisor = new BigDecimal("100");
 
@@ -52,6 +55,9 @@ class BigDecimalUtilsTest {
 
     @Test
     void calculatePercentage_WithDecimalResult_ShouldRoundCorrectly() {
+        when(decimalConfig.getPercentageScale()).thenReturn(2);
+        when(decimalConfig.getRoundingMode()).thenReturn(RoundingMode.HALF_UP);
+
         BigDecimal dividend = new BigDecimal("33");
         BigDecimal divisor = new BigDecimal("100");
 
@@ -62,6 +68,9 @@ class BigDecimalUtilsTest {
 
     @Test
     void divideWithCurrencyScale_ShouldDivideAndSetCurrencyScale() {
+        when(decimalConfig.getCurrencyScale()).thenReturn(2);
+        when(decimalConfig.getRoundingMode()).thenReturn(RoundingMode.HALF_UP);
+
         BigDecimal dividend = new BigDecimal("100");
         BigDecimal divisor = new BigDecimal("3");
 
@@ -73,6 +82,9 @@ class BigDecimalUtilsTest {
 
     @Test
     void multiplyAndSetCurrencyScale_ShouldMultiplyAndSetCurrencyScale() {
+        when(decimalConfig.getCurrencyScale()).thenReturn(2);
+        when(decimalConfig.getRoundingMode()).thenReturn(RoundingMode.HALF_UP);
+
         BigDecimal value1 = new BigDecimal("10.555");
         BigDecimal value2 = new BigDecimal("2");
 
@@ -84,6 +96,9 @@ class BigDecimalUtilsTest {
 
     @Test
     void zeroWithCurrencyScale_ShouldReturnZeroWithCurrencyScale() {
+        when(decimalConfig.getCurrencyScale()).thenReturn(2);
+        when(decimalConfig.getRoundingMode()).thenReturn(RoundingMode.HALF_UP);
+
         BigDecimal result = bigDecimalUtils.zeroWithCurrencyScale();
 
         assertThat(result).isEqualByComparingTo(BigDecimal.ZERO);

@@ -36,14 +36,22 @@ public class PricingService {
     private final GarageResolver garageResolver;
     private final ParkingMapper parkingMapper;
 
+    /**
+     * Calculates dynamic price for a sector based on current garage occupancy.
+     * 
+     * This is called at parked time (when vehicle actually parks), not at entry time.
+     * Pricing multiplier is determined by the garage occupancy percentage at the moment 
+     * the vehicle parks, using the pricing strategy ranges configured in the database.
+     * 
+     * @param sector The sector for which to calculate the dynamic price
+     * @return The base price multiplied by the occupancy-based pricing multiplier
+     */
     public BigDecimal calculateDynamicPrice(Sector sector) {
         long occupied = garageRepository.calcOccupancy(sector.getGarage().getId());
 
-        // Use 4 decimal places for intermediate calculation, then scale to percentage scale
         BigDecimal occupancyPercentage = bigDecimalUtils
                 .calculatePercentage(valueOf(occupied), valueOf(sector.getGarage().getMaxCapacity()));
 
-        // Apply pricing strategy based on garage occupancy
         BigDecimal multiplier = strategyResolver.findStrategy(occupancyPercentage).getMultiplier();
 
         return bigDecimalUtils.multiplyAndSetCurrencyScale(sector.getBasePrice(), multiplier);
@@ -62,7 +70,6 @@ public class PricingService {
         
         Instant startOfDay = date.atStartOfDay().toInstant(ZoneOffset.UTC);
         
-        // Sum revenue directly in database query (no need to fetch all records)
         BigDecimal totalRevenue = sessionRepository
                 .sumRevenueByGarageAndSectorAndDate(garage.getId(), sector.getId(), startOfDay);
         

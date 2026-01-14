@@ -26,13 +26,10 @@ public class JacksonConfig {
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         
-        // Configure timezone based on useLocalTimezone setting
         if (useLocalTimezone) {
-            // Use application timezone (America/Sao_Paulo by default) for API serialization
             TimeZone timeZone = TimeZone.getTimeZone(applicationTimezone);
             mapper.setTimeZone(timeZone);
         } else {
-            // Serialize Instant as UTC (ISO 8601 with Z) when useLocalTimezone is false
             mapper.setTimeZone(TimeZone.getTimeZone("UTC"));
         }
         

@@ -29,7 +29,6 @@ public class FeignConfig {
     
     @Bean
     public Request.Options requestOptions() {
-        // connectTimeout: 5s (5000ms), readTimeout: 30s (30000ms), followRedirects: true
         return new Request.Options(5000, 30000, true);
     }
 }

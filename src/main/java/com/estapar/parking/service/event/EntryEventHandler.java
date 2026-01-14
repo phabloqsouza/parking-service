@@ -57,6 +57,11 @@ public class EntryEventHandler extends BaseEventHandler {
         return ENTRY.equals(event.getEventType());
     }
     
+    /**
+     * Checks if garage is at full capacity.
+     * Capacity calculation includes sessions without sector (entered but not parked) 
+     * plus sum of all sector occupied_count values.
+     */
     private boolean isGarageFull(Garage garage) {
         long availableCapacity = garage.getMaxCapacity() - garageRepository.calcOccupancy(garage.getId());
         return availableCapacity <= 0;

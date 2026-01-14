@@ -72,7 +72,6 @@ class WebhookEventServiceTest {
     void processEvent_WithMatchingHandler_ShouldCallHandler() {
         when(garageResolver.getGarage(garageId)).thenReturn(garage);
         when(entryEventHandler.supports(entryEvent)).thenReturn(true);
-        when(exitEventHandler.supports(entryEvent)).thenReturn(false);
 
         webhookEventService.processEvent(garageId, entryEvent);
 

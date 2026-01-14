@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(
     name = "parking.initialization.enabled",
     havingValue = "true",
-    matchIfMissing = true  // Enabled by default for development
+    matchIfMissing = true
 )
 @RequiredArgsConstructor
 public class GarageInitializationRunner implements ApplicationRunner {
@@ -29,7 +29,6 @@ public class GarageInitializationRunner implements ApplicationRunner {
             logger.info("ApplicationRunner: Garage initialization completed successfully");
         } catch (Exception e) {
             logger.error("ApplicationRunner: Failed to initialize garage", e);
-            // Don't fail startup - initialization can be retried via endpoint
         }
     }
 }

@@ -29,23 +29,17 @@ public class ParkingFeeCalculator {
         Duration duration = Duration.between(entryTime, exitTime);
         long totalMinutes = duration.toMinutes();
 
-        // First N minutes are free (configurable)
-        // If duration is under free time, return free regardless of basePrice
-        // This handles the case where user entered but didn't park (basePrice is null)
         if (totalMinutes <= freeMinutes) {
             return bigDecimalUtils.zeroWithCurrencyScale();
         }
 
-        // If basePrice is null, user entered but didn't park - should not charge
         if (basePrice == null) {
             return bigDecimalUtils.zeroWithCurrencyScale();
         }
 
-        // Round up total time to nearest hour (do NOT subtract free minutes)
         BigDecimal chargeableHours = BigDecimal.valueOf(totalMinutes)
                 .divide(BigDecimal.valueOf(MINUTES_PER_HOUR), 0, RoundingMode.CEILING);
         
-        // Calculate final price: hours * base price
         return bigDecimalUtils.multiplyAndSetCurrencyScale(chargeableHours, basePrice);
     }
 }

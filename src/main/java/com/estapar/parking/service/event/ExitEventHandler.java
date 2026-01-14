@@ -34,18 +34,13 @@ public class ExitEventHandler extends BaseEventHandler {
     public void handle(Garage garage, WebhookEventDto event) {
         ExitEventDto exitEvent = requireEventType(event, ExitEventDto.class);
         
-        // Find active session - throws exception if not found (required for pricing)
         ParkingSession session = parkingSessionService.findActiveSession(garage, exitEvent.getLicensePlate());
         session.setExitTime(exitEvent.getExitTime());
         
-        // Calculate final price
-        // ParkingFeeCalculator handles null basePrice (user entered but didn't park) and free time duration
         BigDecimal finalPrice = pricingService.calculateFee(session);
         
-        // Free spot if assigned and decrement sector capacity
         parkingSpotService.freeSpot(session);
         
-        // Update session
         session.setFinalPrice(finalPrice);
         sessionRepository.save(session);
         

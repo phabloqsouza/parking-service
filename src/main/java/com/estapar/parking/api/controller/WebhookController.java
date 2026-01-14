@@ -30,13 +30,18 @@ public class WebhookController {
     @PostMapping
     @Operation(
         summary = "Handle parking event",
-        description = "Accepts vehicle events: ENTRY (requires entry_time), PARKED (requires lat, lng), EXIT (requires exit_time)"
+        description = "Accepts vehicle parking events from the simulator. " +
+                      "ENTRY event: requires entry_time (sector is NOT specified - determined when vehicle parks). " +
+                      "PARKED event: requires lat and lng coordinates for exact spot matching. " +
+                      "EXIT event: requires exit_time. " +
+                      "All events require license_plate and event_type. " +
+                      "Sector is determined automatically on PARKED event when spot is matched."
     )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Event processed successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid request or validation error", content = @Content),
-        @ApiResponse(responseCode = "404", description = "Resource not found", content = @Content),
-        @ApiResponse(responseCode = "409", description = "Conflict (e.g., sector full, spot occupied)", content = @Content)
+        @ApiResponse(responseCode = "404", description = "Resource not found (e.g., garage not found)", content = @Content),
+        @ApiResponse(responseCode = "409", description = "Conflict (e.g., garage full, spot occupied, vehicle already has active session)", content = @Content)
     })
     public ResponseEntity<Void> handleWebhookEvent(
             @Parameter(description = "Optional garage ID. If not provided, uses default garage")

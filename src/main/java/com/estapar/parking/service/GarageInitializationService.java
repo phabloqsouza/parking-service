@@ -25,23 +25,19 @@ public class GarageInitializationService {
     public void initializeFromSimulator() {
         logger.info("Starting garage initialization from simulator...");
         
-        // Check if default garage exists - if yes, do nothing
         if (garageRepository.existsByIsDefaultTrue()) {
             logger.warn("Default garage already exists. Skipping initialization.");
             return;
         }
         
-        // Fetch configuration from simulator
         GarageSimulatorResponseDto config = simulatorClient.getGarageConfiguration();
         
         if (config == null) {
             throw new IllegalStateException("Simulator returned null garage configuration");
         }
         
-        // Build complete object graph (Garage -> Sectors -> Spots) using mapper
         Garage garage = parkingMapper.toGarage(config);
         
-        // Save garage once - cascade will save sectors and spots
         garage = garageRepository.save(garage);
         logger.info("Garage initialization completed successfully. Garage ID: {}, Sectors: {}",
                    garage.getId(), 

@@ -42,10 +42,8 @@ public class ParkedEventHandler extends BaseEventHandler {
     public void handle(Garage garage, WebhookEventDto event) {
         ParkedEventDto parkedEvent = requireEventType(event, ParkedEventDto.class);
         
-        // Find active session
         ParkingSession session = parkingSessionService.findActiveSession(garage, parkedEvent.getLicensePlate());
         
-        // Check if already parked (idempotent handling)
         if (session.getSpot() != null) {
             logger.warn("Vehicle {} already has spot assigned (spot_id: {}). Duplicate PARKED event ignored.", 
                        parkedEvent.getLicensePlate(), session.getSpot().getId());
@@ -56,8 +54,11 @@ public class ParkedEventHandler extends BaseEventHandler {
             spot -> {
                 Sector sector = spot.getSector();
                 parkingSpotService.assignSpot(session, spot);
+                
                 BigDecimal basePrice = pricingService.calculateDynamicPrice(sector);
+                
                 sectorCapacityService.incrementCapacity(sector);
+                
                 session.setBasePrice(basePrice);
                 sessionRepository.save(session);
                 logger.info("Parked event processed: vehicle={}, spot_id={}, sector={}, basePrice={}", 
@@ -71,6 +72,12 @@ public class ParkedEventHandler extends BaseEventHandler {
         return EventType.PARKED.equals(event.getEventType());
     }
     
+    /**
+     * Finds parking spot by exact coordinates.
+     * Uses precise matching (no tolerance) - coordinates must match exactly.
+     * If spot not found, session remains without sector_id and spot_id,
+     * but still counts toward garage capacity.
+     */
     private Optional<ParkingSpot> findSpot(Garage garage, ParkedEventDto parkedEvent) {
         return spotRepository
                 .findByGarageIdAndLatitudeAndLongitude(
